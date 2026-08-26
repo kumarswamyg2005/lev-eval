@@ -4,7 +4,9 @@ Provenance for every input used in Phase 1. All analysis numbers in
 [README.md](README.md) were produced against exactly these artifacts.
 
 Retrieval dates are the local mtimes of the cached files. `cache/` is
-gitignored (1.5 GB), so this file is the record of what was in it.
+gitignored (~1.5 GB), so this file is the record of what was in it. The two
+sources served from moving refs (Exploit-DB, Metasploit) are committed to
+`data/vendor/` instead, so nothing a reviewer re-fetches can change them.
 
 Analysis date (`dn`) for all headline results: **2026-08-01** (the last EPSS
 snapshot). Table 5 reproduction uses `dn` = 2025-03-01.
@@ -68,9 +70,12 @@ roughly 75 KB/s, ~2.7 hours for this corpus, against one request here.
 | rows | 47,135 |
 | distinct CVEs referenced | 25,057 |
 | retrieved | 2026-08-25 |
+| location | **`data/vendor/files_exploits.csv` — committed to this repo** |
 
-Fetched from `main`, which is not a pinned ref — re-running later will get a
-newer file. The SHA256 above identifies the exact snapshot used.
+Upstream serves this from `main`, a moving ref, so re-fetching would silently
+change the data under a published result. The snapshot is committed instead;
+`make fetch` does not download it. `python data/download_exploits.py --refresh`
+updates it deliberately (and invalidates the hash above).
 
 ## Metasploit — https://github.com/rapid7/metasploit-framework (db/modules_metadata_base.json, master)
 
@@ -80,8 +85,10 @@ newer file. The SHA256 above identifies the exact snapshot used.
 | modules | 7,151 |
 | distinct CVEs referenced | 3,185 |
 | retrieved | 2026-08-25 |
+| location | **`data/vendor/modules_metadata_base.json` — committed to this repo** |
 
-Same caveat: `master` is not pinned; the SHA256 identifies the snapshot.
+Same treatment: `master` is a moving ref, so the snapshot is committed rather
+than fetched.
 
 Combined Exploit-DB + Metasploit: **26,311 unique CVEs** with a public exploit.
 

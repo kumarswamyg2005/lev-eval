@@ -13,7 +13,8 @@ fetch:
 	$(PY) data/download_epss.py
 	$(PY) data/download_kev.py
 	$(PY) data/download_nvd.py
-	$(PY) data/download_exploits.py
+	@echo "Exploit-DB and Metasploit are pinned in data/vendor/ -- not fetched."
+	@echo "Run 'python data/download_exploits.py --refresh' to update them."
 
 check:
 	$(PY) models/lev.py
