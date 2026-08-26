@@ -29,6 +29,7 @@ reproduce: check
 	$(PY) analysis/plateau.py
 	$(PY) analysis/top_bucket.py
 	$(PY) analysis/vendor_ceiling.py
+	$(PY) analysis/sampling_error.py
 	@echo
 	@echo "figures/: $$(ls figures | tr '\n' ' ')"
 

@@ -157,6 +157,38 @@ group. These have demonstrated exploit *availability* and no KEV entry.
 top bucket by normalization, only 16 (4.66%) are in KEV, against 13.89% for
 the retained bucket — 3.0x lower, Fisher p = 2.1e-07, odds ratio 0.303.
 
+### Monthly-sampling error, measured (`sampling_error.py`)
+
+479 CVEs, stratified by LEV_norm decile across 6 `d0` cohorts, compared
+against LEV computed on true daily window starts (156 targeted daily files).
+
+| statistic | value |
+|---|---|
+| population-weighted mean \|diff\| | 0.00228 (**3.9%** of cohort mean LEV) |
+| unweighted mean \|diff\| on the sample | 0.01216 (2.1% of sample mean LEV) |
+| median \|diff\| | 0.00350 |
+| 90th percentile \|diff\| | 0.02997 |
+| max \|diff\| | 0.43285 |
+| mean signed difference | -0.00011 (unsigned: 46.6% over, 39.5% under) |
+| crossings of 0.5 / 0.9 | 1.88% / 1.04% of sample |
+
+By cohort age, showing drift accumulating with window count:
+
+| d0 | windows | n | mean \|diff\| | max \|diff\| |
+|---|---|---|---|---|
+| 2023-04-01 | 40 | 88 | 0.02099 | 0.23108 |
+| 2023-10-01 | 34 | 87 | 0.02004 | 0.43285 |
+| 2024-04-01 | 28 | 82 | 0.01200 | 0.10736 |
+| 2024-10-01 | 22 | 88 | 0.00497 | 0.09225 |
+| 2025-04-01 | 16 | 74 | 0.00736 | 0.05418 |
+| 2025-10-01 | 10 | 60 | 0.00448 | 0.04457 |
+
+**Verdict: bounded and negligible.** 3.9% sits well below the 26.9%
+version-mass effect and is nowhere near the multiplicative bounds. See
+threats 1 and 18.
+
+![sampling error](figures/sampling_error.png)
+
 ### Task F — vendor-ceiling bound on KEV completeness (`vendor_ceiling.py`)
 
 At equal LEV, exploitation propensity is asserted equal, so the vendor spread
@@ -272,9 +304,21 @@ mean EPSS rises rather than decays. See threats 12-16.
 Assumptions the implementation makes that CSWP 41 does not specify. Each is
 marked with an `ASSUMPTION` / `PROXY` comment at the point it is made.
 
-1. **Monthly, not daily, EPSS sampling** (`download_epss.py`). NIST computes
-   LEV over daily files. A 30-day window stride against ~30.4-day snapshot
-   spacing drifts, so some snapshots are read twice and some never.
+1. **Monthly, not daily, EPSS sampling — measured at 3.9%**
+   (`download_epss.py`, quantified in `sampling_error.py`). NIST computes LEV
+   over daily files. A 30-day window stride against ~30.44-day snapshot
+   spacing drifts ~0.44 days per window, so by the 30th window the pipeline
+   reads a score up to two weeks from the date the equation asks for.
+   Measured against true daily window starts on **479 CVEs stratified by
+   LEV_norm decile across 6 `d0` cohorts** (156 targeted daily files):
+   population-weighted mean |difference| **0.00228, i.e. 3.9% of cohort mean
+   LEV** (2.1% unweighted on the decile-stratified sample, whose mean LEV is
+   0.577 rather than the cohort's 0.059). The error is **unsigned** — 46.6% of
+   CVEs over-estimate, 39.5% under-estimate, mean signed difference -0.00011 —
+   so it adds noise, not bias. Threshold crossings: 1.88% of the sample at
+   0.5, 1.04% at 0.9. **Verdict: bounded and negligible** against the 26.9%
+   version-mass effect and the 3.4-4.1x bound; the daily archive is not needed
+   for the Phase 1 conclusions.
 2. **Missing snapshot days** (`download_epss.py`). The archive is missing some
    days (e.g. 2024-12-01) and answers 403, not 404, for them. We slide forward
    up to 3 days.
@@ -357,9 +401,14 @@ marked with an `ASSUMPTION` / `PROXY` comment at the point it is made.
    "observed" timestamp in this repo is that administrative date, so any
    time-resolved comparison against LEV is lagged by an unknown, variable
    amount.
-18. **Monthly EPSS sampling error is not yet quantified.** Phase 1 reads
-   first-of-month files, not daily. Threat 1 describes the mechanism; no
-   sample has been computed both ways to bound the error. Open.
+18. **Sampling error grows with CVE age, and the measurement does not cover
+   the oldest CVEs** (`sampling_error.py`). Drift accumulates per window, and
+   it shows: mean |difference| runs 0.0045 at 10 windows (d0 = 2025-10) to
+   0.0210 at 40 windows (d0 = 2023-04), a ~4.7x spread. The sample covers d0
+   from 2023-04 to 2025-10 — the calibration cohort — so it does **not** bound
+   the error for the pre-v3 CVEs behind the older Table 5 rows, which carry up
+   to 65 windows and would drift further. Threat 1's 3.9% applies to the
+   calibration results, not to Table 5.
 19. **EPSS v4 lands inside the v3 cohort's LEV windows**
    (`version_normalize.py`). CSWP 41 restricts to v3 CVEs to avoid version
    mixing, but EPSS v4 deployed 2025-03-17 — before the paper's publication —
