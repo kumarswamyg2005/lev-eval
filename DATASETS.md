@@ -138,6 +138,13 @@ measurement, so both are needed.
 
 ---
 
+## Re-running this search
+
+The prompt is in `RESEARCH-PROMPT.md`. It asks for a machine-readable CSV/JSON
+of sources, direct download links grouped by whether they need no auth / a free
+key / an approved application, and a PDF or Markdown summary — so the result
+can be loaded and used rather than re-researched by hand.
+
 ## Sources checked
 
 - VulnCheck KEV: <https://www.vulncheck.com/kev>, <https://docs.vulncheck.com/community/vulncheck-kev/schema>, <https://docs.vulncheck.com/api/v3>
