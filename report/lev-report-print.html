@@ -337,15 +337,68 @@ spreading as more 30-day windows accumulate.</figcaption>
 </figure>
 </section>
 
-<section>
+<section style="break-before:page;margin-top:0">
 <div class="stack-s">
- <span class="eyebrow">Reproducibility</span>
- <h3>Everything regenerates from one command</h3>
- <p><code>make fetch</code> pulls the data once; <code>make reproduce</code> rebuilds every table and
- figure offline, in order. Input provenance &mdash; SHA-256 hashes, release tags, retrieval dates and
- record counts &mdash; is pinned in <code>DATA_SNAPSHOT.md</code>, and the two sources served from moving
- branches are committed into the repository so they cannot shift underneath a published result.</p>
+ <span class="eyebrow">Data</span>
+ <h2>The data this rests on</h2>
+ <p>Every number in this report comes from these five sources at these exact versions. Each row states
+ what the source was used for and the known limitation a reader should weigh against it.</p>
 </div>
+<div class="tw"><table class="tight">
+<thead><tr><th class="name" style="width:16%">Source</th><th class="name" style="width:25%">Version and size</th>
+<th class="name" style="width:23%">Used for</th><th class="name">Known limitation</th></tr></thead>
+<tbody>
+<tr><td class="name"><strong>EPSS</strong><br><span class="dim">epss.empiricalsecurity.com</span></td>
+ <td class="name">67 monthly snapshots, 2021-04-14 to 2026-08-01. 14,456,555 rows, 367,311 unique CVEs.
+ Plus 28 daily files for retraining-boundary probes.</td>
+ <td class="name">The sole input to LEV. Every LEV value is a product over these scores.</td>
+ <td class="name">Sampled monthly, not daily &mdash; measured cost 3.9% of mean LEV, unsigned. Spans
+ three model retrainings, one of which tripled scores overnight.</td></tr>
+<tr><td class="name"><strong>CISA KEV</strong><br><span class="dim">cisa.gov</span></td>
+ <td class="name">catalogVersion 2026.08.25, 1,676 entries, dateAdded 2021-11-03 to 2026-08-25.
+ SHA-256 <code>4ddd6177&hellip;3bb79</code>.</td>
+ <td class="name">The only exploitation ground truth. Defines &ldquo;observed&rdquo; throughout.</td>
+ <td class="name"><strong>Three problems.</strong> Incomplete by design; <code>dateAdded</code> is when
+ CISA catalogued, not when exploitation happened; and it is an input <em>feature</em> to EPSS, so it is
+ partly a predictor of the thing it is scoring.</td></tr>
+<tr><td class="name"><strong>CVE List v5</strong><br><span class="dim">CVE Program</span></td>
+ <td class="name">Release <code>cve_2026-08-25_1700Z</code>, 192,054 records (CVE-2022 onward).
+ 80.5% carry CVSS v3, 81.9% vendor, 81.4% CWE. SHA-256 <code>87ca8c2c&hellip;51e823</code>.</td>
+ <td class="name">CVSS, CWE and vendor attribution for the top-bucket stratification.</td>
+ <td class="name">Vendor names are unnormalised CNA free text; multi-product CVEs are attributed to the
+ first product listed. Per-vendor counts are lower bounds.</td></tr>
+<tr><td class="name"><strong>Exploit-DB</strong><br><span class="dim">gitlab.com/exploit-database</span></td>
+ <td class="name">47,135 rows covering 25,057 CVEs. SHA-256 <code>54b9167e&hellip;df9487</code>.
+ Committed to the repository.</td>
+ <td class="name">Public-exploit availability, as one feature separating KEV from non-KEV CVEs.</td>
+ <td class="name">Availability is not exploitation. Also an EPSS input feature, so it correlates with LEV
+ by construction.</td></tr>
+<tr><td class="name"><strong>Metasploit</strong><br><span class="dim">rapid7/metasploit-framework</span></td>
+ <td class="name">7,151 modules covering 3,185 CVEs. SHA-256 <code>c155aa27&hellip;3e5ee99</code>.
+ Committed to the repository.</td>
+ <td class="name">As above. Combined with Exploit-DB: 26,311 unique CVEs with a public exploit.</td>
+ <td class="name">As above.</td></tr>
+</tbody>
+</table></div>
+
+<div class="stack-s" style="margin-top:14pt">
+<h3>The population actually analysed</h3>
+<p>From 367,311 CVEs with any EPSS data, the calibration cohort is
+<strong>105,250</strong> &mdash; those first scored in the EPSS v3 era (2023-03-07 onward), excluding
+CVEs that EPSS backfilled retroactively, and at least six months old so they have had a chance to appear
+in KEV. <strong>495 of them are in KEV</strong>, a base rate of 0.47%. Table 5 reproduction uses larger
+populations at an earlier analysis date; every other figure here uses the 105,250.</p>
+</div>
+
+
+
+<p class="note"><strong>What is not here.</strong> No second exploitation source, no daily EPSS, and no
+data on exploitation that no catalogue recorded &mdash; which is why the residual gap cannot be split
+between LEV error and catalogue incompleteness. That sets the Phase 2 agenda.</p>
+<p class="note b" style="margin-top:9pt"><strong>Reproducibility.</strong> <code>make reproduce</code>
+rebuilds every table and figure offline. Provenance is pinned in <code>DATA_SNAPSHOT.md</code>, the EPSS
+end date is pinned in code so re-runs cannot ingest newer snapshots, and the two sources served from
+moving branches are committed to the repository.</p>
 </section>
 
 <section style="break-before:page;margin-top:0">
@@ -418,7 +471,7 @@ stronger than hedging it.</p>
 </section>
 
 <footer>
-Phase 1 &mdash; 4 data modules, 1 model implementation, 10 analyses, 4 figures, 40 recorded threats to
+Phase 1 &mdash; 4 data modules, 1 model implementation, 11 analyses, 4 figures, 44 recorded threats to
 validity.<br>
 Evaluating NIST CSWP 41, Mell &amp; Spring, <em>Likely Exploited Vulnerabilities</em>, May 2025.
 Analysis date 2026-08-01.
