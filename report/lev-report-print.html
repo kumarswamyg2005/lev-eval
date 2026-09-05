@@ -106,6 +106,17 @@ table.tight th{padding:6pt 9pt}
 .verdict-line p{font-family:var(--serif);font-size:12.5pt;line-height:1.4;color:var(--ink)}
 ol.steps{margin:8pt 0 0;padding-left:15pt;font-size:9.2pt;display:flex;flex-direction:column;gap:5pt}
 ol.steps li::marker{font-family:var(--mono);font-size:8pt;color:var(--muted)}
+.totals{display:flex;border:1.5pt solid var(--ink);margin-top:11pt;break-inside:avoid}
+.totals>div{flex:1 1 0;min-width:0;padding:9pt 11pt;border-right:1px solid var(--line-soft)}
+.totals>div:last-child{border-right:0}
+.tnum{font-family:var(--mono);font-size:15pt;font-weight:600;color:var(--ink);line-height:1;
+ display:block;font-variant-numeric:tabular-nums}
+.tlab{font-size:7.6pt;color:var(--muted);display:block;margin-top:4pt;line-height:1.35}
+.badge{font-family:var(--mono);font-size:7pt;padding:1.5pt 4pt;white-space:nowrap;display:inline-block}
+.b-free{background:#E6F0EA;color:#2A6349}
+.b-key{background:#FDF2E2;color:#8A6212}
+.b-app{background:#F1F3F6;color:#5D6673}
+.dim{color:var(--muted)}
 footer{margin-top:13pt;padding-top:7pt;border-top:1px solid var(--line);font-size:8pt;
  color:var(--muted);line-height:1.5;break-before:avoid;break-inside:avoid}
 </style></head><body>
@@ -350,7 +361,8 @@ spreading as more 30-day windows accumulate.</figcaption>
 <tbody>
 <tr><td class="name"><strong>EPSS</strong><br><span class="dim">epss.empiricalsecurity.com</span></td>
  <td class="name">67 monthly snapshots, 2021-04-14 to 2026-08-01. 14,456,555 rows, 367,311 unique CVEs.
- Plus 28 daily files for retraining-boundary probes.</td>
+ Plus 171 daily files for the retraining-boundary probes and the daily-vs-monthly check &mdash; 238
+ files in all.</td>
  <td class="name">The sole input to LEV. Every LEV value is a product over these scores.</td>
  <td class="name">Sampled monthly, not daily &mdash; measured cost 3.9% of mean LEV, unsigned. Spans
  three model retrainings, one of which tripled scores overnight.</td></tr>
@@ -381,6 +393,17 @@ spreading as more 30-day windows accumulate.</figcaption>
 </tbody>
 </table></div>
 
+<div class="totals">
+ <div><span class="tnum">5</span><span class="tlab">datasets used in Phase 1</span></div>
+ <div><span class="tnum">14.68 M</span><span class="tlab">records ingested across all five</span></div>
+ <div><span class="tnum">380,880</span><span class="tlab">distinct CVEs touched</span></div>
+ <div><span class="tnum">1.8 GB</span><span class="tlab">on disk, 238 EPSS files</span></div>
+</div>
+<p style="margin-top:9pt;font-size:9pt;color:var(--muted)">Record counts: EPSS 14,456,555 score rows
+&middot; CVE List v5 192,054 &middot; Exploit-DB 25,057 CVE references &middot; Metasploit 3,185 &middot;
+CISA KEV 1,676. Of the 1,676 KEV entries, <strong>1,665 have EPSS data</strong>; the remaining 11 have
+no EPSS score at any date and cannot receive a LEV value at all.</p>
+
 <div class="stack-s" style="margin-top:14pt">
 <h3>The population actually analysed</h3>
 <p>From 367,311 CVEs with any EPSS data, the calibration cohort is
@@ -394,7 +417,54 @@ populations at an earlier analysis date; every other figure here uses the 105,25
 
 <p class="note"><strong>What is not here.</strong> No second exploitation source, no daily EPSS, and no
 data on exploitation that no catalogue recorded &mdash; which is why the residual gap cannot be split
-between LEV error and catalogue incompleteness. That sets the Phase 2 agenda.</p>
+between LEV error and catalogue incompleteness. That sets the Phase 2 agenda below.</p>
+
+<div class="stack-s" style="margin-top:15pt">
+<h3>Six further datasets identified for Phase 2</h3>
+<p>Sourced and access-checked on 6 September 2026. All six are free; four need no account at all. Full
+detail, including why the obvious choice does not work unmodified, is in the companion
+<strong>Phase2-Datasets.pdf</strong>.</p>
+</div>
+<div class="tw phase2"><table class="tight">
+<thead><tr><th class="name" style="width:20%">Source</th><th style="width:11%">Access</th>
+<th class="name" style="width:32%">What it adds</th><th class="name">Caveat</th></tr></thead>
+<tbody>
+<tr><td class="name"><strong>VulnCheck KEV</strong><br><span class="dim">Community</span></td>
+ <td><span class="badge b-key">free key</span></td>
+ <td class="name">The second exploitation list. ~3.6x CISA's volume, with per-report provenance and
+ dates.</td>
+ <td class="name">A superset of CISA KEV as shipped, so an independent list must be reconstructed by
+ filtering out CISA-sourced reports.</td></tr>
+<tr><td class="name"><strong>CIRCL</strong><br><span class="dim">Vulnerability-Lookup</span></td>
+ <td><span class="badge b-free">open</span></td>
+ <td class="name">Third list. Carries Shadowserver honeypot telemetry with <code>type=exploited</code>
+ &mdash; sensor evidence, no contract needed.</td>
+ <td class="name">Coverage depth unverified.</td></tr>
+<tr><td class="name"><strong>ENISA EUVD</strong></td>
+ <td><span class="badge b-free">open</span></td>
+ <td class="name">Fourth list, EU-sourced, partially independent.</td>
+ <td class="name">Its KEV dump is a CISA+EU consolidation; use the exploited-flag search instead.</td></tr>
+<tr><td class="name"><strong>GreyNoise</strong><br><span class="dim">Research Program</span></td>
+ <td><span class="badge b-app">apply</span></td>
+ <td class="name">Internet-wide sensor telemetry &mdash; the strongest independence claim available.</td>
+ <td class="name">Reviewed application, so start early. Also an EPSS label source, so partly circular.</td></tr>
+<tr><td class="name"><strong>CISA KEV</strong><br><span class="dim">daily archive</span></td>
+ <td><span class="badge b-free">open</span></td>
+ <td class="name">Verifies that <code>dateAdded</code> is never backdated, which is currently assumed
+ from a single snapshot.</td>
+ <td class="name">None material.</td></tr>
+<tr><td class="name"><strong>EPSS</strong><br><span class="dim">full daily archive</span></td>
+ <td><span class="badge b-free">open</span></td>
+ <td class="name">Removes the 3.9% monthly-sampling approximation entirely. ~2.5 GB.</td>
+ <td class="name">No licence declared on the repository.</td></tr>
+</tbody>
+</table></div>
+<div class="totals">
+ <div><span class="tnum">6</span><span class="tlab">datasets identified for Phase 2</span></div>
+ <div><span class="tnum">11</span><span class="tlab">datasets in total across both phases</span></div>
+ <div><span class="tnum">0</span><span class="tlab">requiring paid licences</span></div>
+ <div><span class="tnum">1</span><span class="tlab">needing a reviewed application</span></div>
+</div>
 <p class="note b" style="margin-top:9pt"><strong>Reproducibility.</strong> <code>make reproduce</code>
 rebuilds every table and figure offline. Provenance is pinned in <code>DATA_SNAPSHOT.md</code>, the EPSS
 end date is pinned in code so re-runs cannot ingest newer snapshots, and the two sources served from
