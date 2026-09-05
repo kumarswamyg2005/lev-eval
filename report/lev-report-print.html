@@ -106,6 +106,10 @@ table.tight th{padding:6pt 9pt}
 .verdict-line p{font-family:var(--serif);font-size:12.5pt;line-height:1.4;color:var(--ink)}
 ol.steps{margin:8pt 0 0;padding-left:15pt;font-size:9.2pt;display:flex;flex-direction:column;gap:5pt}
 ol.steps li::marker{font-family:var(--mono);font-size:8pt;color:var(--muted)}
+.headline{border:1.5pt solid var(--ink);padding:11pt 13pt;margin-top:11pt;break-inside:avoid}
+.headline p{font-family:var(--serif);font-size:12.5pt;line-height:1.35;color:var(--ink);font-weight:600}
+.headline .sub{font-family:var(--sans);font-size:9.4pt;font-weight:400;color:var(--body);
+ margin-top:6pt;line-height:1.5}
 .totals{display:flex;border:1.5pt solid var(--ink);margin-top:11pt;break-inside:avoid}
 .totals>div{flex:1 1 0;min-width:0;padding:9pt 11pt;border-right:1px solid var(--line-soft)}
 .totals>div:last-child{border-right:0}
@@ -469,6 +473,64 @@ detail, including why the obvious choice does not work unmodified, is in the com
 rebuilds every table and figure offline. Provenance is pinned in <code>DATA_SNAPSHOT.md</code>, the EPSS
 end date is pinned in code so re-runs cannot ingest newer snapshots, and the two sources served from
 moving branches are committed to the repository.</p>
+</section>
+
+<section style="break-before:page;margin-top:0">
+<div class="stack-s">
+ <span class="eyebrow">Method</span>
+ <h2>Why there is no model</h2>
+</div>
+
+<div class="headline">
+<p>LEV is a formula, not a model. Nothing is fitted, so there is nothing to train.</p>
+<p class="sub">Feed it EPSS scores, multiply across 30-day windows, get a number. This study measures how
+that formula behaves against observed exploitation. The measurement <em>is</em> the contribution.</p>
+</div>
+
+<p style="margin-top:12pt">A classifier <em>could</em> be trained on this data &mdash; 105,250 CVEs with
+495 positives. It is not done here, for four reasons, in order of how hard each is to answer.</p>
+
+<div class="tw"><table class="tight">
+<tbody>
+<tr><td class="k" style="width:20%">Wrong question</td><td class="name">The research question is whether NIST&rsquo;s
+ published metric is calibrated, not whether a better predictor could be built. A model answers a
+ different question and leaves the original one untouched.</td></tr>
+<tr><td class="k">Broken labels</td><td class="name">Any model here trains on CISA KEV membership &mdash; the very
+ thing this study shows is incomplete and vendor-biased, at 32.5% of Microsoft CVEs against 2.3% of
+ XWiki&rsquo;s at identical LEV. Such a model learns CISA&rsquo;s visibility, not exploitation.</td></tr>
+<tr><td class="k">Circularity</td><td class="name">EPSS already uses &ldquo;listed on CISA KEV&rdquo; as an input
+ feature. Training on KEV labels using EPSS-derived inputs compounds the leak measured at 11.9x &rarr;
+ 32.7x, rather than avoiding it.</td></tr>
+<tr><td class="k">Weaker by<br>construction</td><td class="name">It would reproduce EPSS with less. EPSS uses 1,477
+ features and proprietary honeypot label feeds from four commercial sources; this study holds five
+ public ones.</td></tr>
+</tbody>
+</table></div>
+
+<p class="note b" style="margin-top:12pt"><strong>The findings that matter need no labels at all.</strong>
+That 26.9% of LEV mass is an EPSS version artifact, and that LEV growth is convex rather than saturating,
+are both measured from EPSS alone. That is precisely why the incompleteness objection cannot reach them
+&mdash; and why adding a model trained on the disputed labels would weaken the paper rather than
+strengthen it.</p>
+
+<div class="stack-s" style="margin-top:15pt">
+<h3>What would be legitimate to fit, if a model is wanted</h3>
+</div>
+<div class="tw"><table class="tight">
+<tbody>
+<tr><td class="k" style="width:20%">Recalibration map</td><td class="name">Isotonic regression or Platt scaling from
+ LEV to observed KEV appearance &mdash; a correction curve rather than a predictor. Supported by the data
+ already held. Must be framed as recalibration against <em>observed KEV appearance</em>, not against true
+ exploitation, since it inherits the catalogue&rsquo;s bias.</td></tr>
+<tr><td class="k">Capture&ndash;recapture</td><td class="name">Log-linear models with interaction terms across three or
+ more exploitation catalogues. Genuine model fitting, and the core of the next phase &mdash; but it needs
+ a second data source, not a bigger model.</td></tr>
+</tbody>
+</table></div>
+
+<p class="note" style="margin-top:12pt"><strong>The bottleneck is data, not model capacity.</strong> No
+amount of fitting resolves whether the residual gap is metric error or catalogue blindness. Only a second,
+independent exploitation source does that.</p>
 </section>
 
 <section style="break-before:page;margin-top:0">

@@ -128,9 +128,8 @@ footer{margin-top:13pt;padding-top:7pt;border-top:1px solid var(--line);font-siz
 <p class="lede">Every data source behind the empirical evaluation of NIST&rsquo;s LEV metric &mdash; what
 was used, at what version, for which result, and what each one cannot tell us. Plus the six further
 sources identified for the next phase.</p>
-<p class="meta"><b>A note on terminology:</b> nothing here is training data. This is a statistics and
-measurement study &mdash; no model is fitted to these sources, so they are analysis inputs and reference
-data, not a training set.</p>
+<p class="meta"><b>These are analysis inputs, not training data.</b> No model is fitted to any of
+them &mdash; see &ldquo;why nothing is trained&rdquo; below.</p>
 </div>
 
 <div class="totals">
@@ -296,6 +295,33 @@ it; the study records 44 threats to validity in total.</p></div>
  <div><span class="tnum">0</span><span class="tlab">requiring paid licences</span></div>
  <div><span class="tnum">1</span><span class="tlab">needing a reviewed application</span></div>
 </div>
+</section>
+
+<section>
+<div class="stack-s"><span class="eyebrow">Method</span><h2>Why nothing is trained</h2></div>
+<div class="headline">
+<p>LEV is a formula, not a model. Nothing is fitted, so there is nothing to train.</p>
+<p class="sub">A classifier <em>could</em> be built from these sources &mdash; 105,250 CVEs with 495
+positives. It is not, for four reasons.</p>
+</div>
+<div class="tw"><table class="tight">
+<tbody>
+<tr><td class="k" style="width:21%">Wrong question</td><td class="name">The question is whether
+ NIST&rsquo;s published metric is calibrated, not whether a better predictor could be built.</td></tr>
+<tr><td class="k">Broken labels</td><td class="name">Any model here trains on CISA KEV membership &mdash;
+ the thing shown to be incomplete and vendor-biased, 32.5% of Microsoft CVEs against 2.3% of
+ XWiki&rsquo;s at identical LEV. It would learn CISA&rsquo;s visibility, not exploitation.</td></tr>
+<tr><td class="k">Circularity</td><td class="name">EPSS already uses &ldquo;listed on CISA KEV&rdquo; as
+ an input feature; training on KEV labels with EPSS-derived inputs compounds that leak rather than
+ avoiding it.</td></tr>
+<tr><td class="k">Weaker by<br>construction</td><td class="name">It would reproduce EPSS with less
+ &mdash; 1,477 features and four commercial honeypot feeds, against five public sources here.</td></tr>
+</tbody>
+</table></div>
+<p class="note b" style="margin-top:10pt"><strong>The strongest findings use no labels at all.</strong>
+That 26.9% of LEV mass is an EPSS version artifact, and that LEV growth is convex rather than saturating,
+are measured from EPSS alone &mdash; which is why the catalogue-incompleteness objection cannot reach
+them. <strong>The bottleneck is data, not model capacity.</strong></p>
 </section>
 
 <section>
