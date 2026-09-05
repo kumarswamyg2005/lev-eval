@@ -30,6 +30,12 @@ URL = "https://epss.empiricalsecurity.com/epss_scores-{}.csv.gz"
 EPSS_START = dt.date(2021, 4, 14)   # first public EPSS file / EPSS v1
 EPSS_V3 = dt.date(2023, 3, 7)       # EPSS v3 release
 
+# Pinned end of the archive used for every published result.  Without this the
+# default `until` is today, so `make reproduce` silently ingests new snapshots
+# as time passes and stops matching DATA_SNAPSHOT.md.  Raise it deliberately
+# when refreshing the dataset, and update DATA_SNAPSHOT.md in the same commit.
+ARCHIVE_END = dt.date(2026, 8, 1)
+
 # NIST Table 5 cut-off dates: sampled explicitly so validate.py can slice on a
 # date that actually exists in the data.
 ANCHORS = [EPSS_START, dt.date(2022, 2, 4), EPSS_V3]
@@ -37,7 +43,7 @@ ANCHORS = [EPSS_START, dt.date(2022, 2, 4), EPSS_V3]
 
 def sample_dates(since=EPSS_START, until=None):
     """1st of each month in [since, until], plus the Table 5 anchor dates."""
-    until = until or dt.date.today()
+    until = until or ARCHIVE_END
     firsts = pd.date_range(since, until, freq="MS").date
     days = {d for d in firsts} | {a for a in ANCHORS if since <= a <= until}
     return sorted(days)

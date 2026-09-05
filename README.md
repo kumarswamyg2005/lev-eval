@@ -33,6 +33,7 @@ Every script is standalone and everything downloaded is cached under `cache/`
     python analysis/plateau.py       # Task C: plateau fit + c-drift test
     python analysis/top_bucket.py    # Task D: top-bucket stratification
     python analysis/vendor_ceiling.py # Task F: vendor-ceiling bound
+    python analysis/leakage.py       # circularity check: EPSS uses KEV as a feature
 
 ## Status
 
@@ -539,3 +540,44 @@ marked with an `ASSUMPTION` / `PROXY` comment at the point it is made.
    CVEs in the Task F population sit there. All binning in this repo goes
    through the digitize-and-clip path in `calibration.reliability()`. Anyone
    re-binning these scores should check the top edge first.
+41. **The LEV-vs-KEV comparison is partly circular, and it was flattering the
+   headline number** (`leakage.py`). EPSS v3 uses *"CVE is listed on CISA KEV"*
+   as an **input feature** — Jacobs et al., arXiv:2302.14172, "Public
+   vulnerability lists (3 features)": CISA KEV, Google Project Zero, Trend
+   Micro ZDI. LEV is computed entirely from EPSS, so KEV membership is both
+   predictor and outcome. Restricting to CVEs whose KEV membership could not
+   have reached the model that scored them (not on KEV at the v2025.03.14
+   training, evaluated before the next retraining re-ingests the catalog):
+
+   | cohort | n | in KEV | mean LEV | observed | over-confidence |
+   |---|---|---|---|---|---|
+   | all CVEs | 100,905 | 471 | 0.0555 | 0.00467 | 11.9x |
+   | leak-free | 100,598 | 164 | 0.0533 | 0.00163 | **32.7x** |
+
+   **Over-confidence nearly triples once the leak is removed.** The Phase 1
+   figures (17.2x raw, 12.6x normalized) are therefore *conservative* — a
+   model partly told the answer still over-predicts by an order of magnitude.
+   This strengthens the central finding rather than undermining it.
+42. **The same leak inflated the discrimination and top-bucket results**
+   (`leakage.py`). On the leak-free cohort the observed/predicted ratio spans
+   only 0.019 to 0.047 across the ten buckets, against 0.010 to 0.131 with the
+   leak included. So the [0.9, 1.0) bucket's departure from the plateau — 3.29x
+   (raw) and 2.31x (normalized) in Task C — is **largely circularity**: high-LEV
+   CVEs are disproportionately KEV members partly because KEV membership raised
+   their EPSS score. Ranking still works (top bucket 138x the bottom bucket's
+   observed rate), but the *magnitude* of the top-bucket effect must be reported
+   leak-free. **Soften the top-bucket claims, keep the over-confidence claim.**
+43. **Exploit-DB, Metasploit, Nuclei and Project Zero are also EPSS features**
+   (same source). "Published exploit code (3 features): Exploit-DB, Github,
+   Metasploit"; "Offensive security tools (4 features): Nuclei, Jaeles,
+   Intrigue, Sn1per". Task D uses Exploit-DB and Metasploit presence to
+   separate KEV from non-KEV inside a LEV stratum — those are EPSS inputs, so
+   they correlate with LEV by construction. Holding the LEV bucket fixed
+   controls for this only partially. It also rules out Project Zero as an
+   independent validation set, which it would otherwise look like.
+44. **`make reproduce` was drifting with the calendar** (`download_epss.py`).
+   The EPSS loader defaulted `until` to today, so re-running weeks later
+   silently ingested new monthly snapshots and stopped matching
+   DATA_SNAPSHOT.md — observed live when a 2026-09-01 file appeared mid-session.
+   Now pinned to `ARCHIVE_END = 2026-08-01`; raise it deliberately and update
+   DATA_SNAPSHOT.md in the same commit.
