@@ -1,0 +1,325 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>LEV Study Datasets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap">
+<style>
+@page{size:A4;margin:16mm 15mm 15mm}
+:root{
+ --paper:#fff;--sunk:#F1F3F6;--ink:#16181D;--body:#33383F;--muted:#5D6673;
+ --line:#D3D8DF;--line-soft:#E7EAEF;
+ --predicted:#C1440E;--observed:#365C8D;--good:#2A6349;--warn:#8A6212;
+ --serif:"Source Serif 4",Georgia,serif;
+ --sans:"IBM Plex Sans",Helvetica,Arial,sans-serif;
+ --mono:"IBM Plex Mono",Menlo,monospace;}
+*{box-sizing:border-box}
+html,body{background:#fff}
+body{font-family:var(--sans);font-size:10.2pt;line-height:1.55;color:var(--body);margin:0;
+ -webkit-print-color-adjust:exact;print-color-adjust:exact}
+h1,h2,h3,h4{font-family:var(--serif);color:var(--ink);margin:0;text-wrap:balance;break-after:avoid}
+h1{font-size:27pt;line-height:1.05;font-weight:600;letter-spacing:-.015em}
+h2{font-size:15pt;font-weight:600;line-height:1.2;letter-spacing:-.005em}
+h3{font-size:11pt;font-weight:600;line-height:1.3}
+h4{font-family:var(--sans);font-size:9.6pt;font-weight:600}
+p{margin:0;orphans:3;widows:3}
+.stack{display:flex;flex-direction:column;gap:9pt}
+.stack-s{display:flex;flex-direction:column;gap:6pt}
+section{margin-top:20pt;break-inside:auto}
+.stack-s{break-after:avoid}
+section.brk{margin-top:22pt}
+.eyebrow{font-family:var(--mono);font-size:7pt;letter-spacing:.15em;text-transform:uppercase;
+ color:var(--muted);font-weight:500}
+.lede{font-size:11.4pt;line-height:1.5;color:var(--body)}
+.meta{font-family:var(--mono);font-size:7.6pt;color:var(--muted);line-height:1.7}
+.meta b{font-weight:400;white-space:nowrap}
+hr{border:0;border-top:1px solid var(--line);margin:18pt 0 0}
+
+/* cover block */
+.cover{border-bottom:2.5pt solid var(--ink);padding-bottom:14pt}
+.verdict{display:flex;border:1px solid var(--line);margin-top:14pt;break-inside:avoid}
+.verdict>div{flex:1 1 0;min-width:0;padding:11pt 12pt;border-right:1px solid var(--line-soft)}
+.verdict>div:last-child{border-right:0}
+.vnum{font-family:var(--mono);font-size:17pt;font-weight:600;color:var(--ink);line-height:1;
+ display:block;font-variant-numeric:tabular-nums}
+.vnum.p{color:var(--predicted)}
+.vlab{font-size:8pt;color:var(--muted);display:block;margin-top:5pt;line-height:1.4}
+.key{display:flex;gap:16pt;font-family:var(--mono);font-size:8pt;background:var(--sunk);
+ padding:7pt 10pt;margin-top:12pt}
+.key span{display:flex;align-items:center;gap:6pt}
+.sw{width:8pt;height:8pt;flex:none}
+
+/* tables */
+.tw{border:1px solid var(--line);margin-top:10pt;break-inside:avoid}
+table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:8.1pt;
+ font-variant-numeric:tabular-nums}
+th{text-align:left;font-weight:500;font-size:6.8pt;letter-spacing:.08em;text-transform:uppercase;
+ color:var(--muted);padding:7pt 9pt;border-bottom:1px solid var(--line)}
+td{padding:5.6pt 9pt;border-bottom:1px solid var(--line-soft)}
+tr:last-child td{border-bottom:0}
+td.name{font-family:var(--sans);font-size:8.6pt}
+.num{text-align:right}
+.pred{color:var(--predicted)}.obs{color:var(--observed)}
+.pass{color:var(--good);font-weight:500}.dim{color:var(--muted)}
+tr.hl td{background:var(--sunk);font-weight:500}
+
+/* figures */
+figure{margin:12pt 0 0;break-inside:avoid}
+figure img{display:block;margin:0 auto;max-width:100%;max-height:104mm;width:auto;height:auto;
+ border:1px solid var(--line)}
+figcaption{font-size:8.2pt;color:var(--muted);margin-top:6pt;line-height:1.45}
+
+/* chain */
+ol.chain{list-style:none;margin:12pt 0 0;padding:0;border:1px solid var(--line);break-inside:avoid}
+ol.chain li{display:flex;gap:12pt;padding:11pt 12pt;border-bottom:1px solid var(--line-soft);
+ align-items:baseline}
+ol.chain li:last-child{border-bottom:0}
+.cn{font-family:var(--mono);font-size:13pt;font-weight:600;color:var(--predicted);flex:none;
+ width:78pt;white-space:nowrap;font-variant-numeric:tabular-nums}
+.cb strong{color:var(--ink);font-weight:600}
+.cb p{font-size:9pt;color:var(--muted);margin-top:3pt;line-height:1.45}
+
+/* cards */
+.cards{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);margin-top:12pt;
+ break-inside:avoid}
+.cards>div{background:#fff;padding:11pt 12pt;flex:1;display:flex;flex-direction:column;gap:5pt}
+.cards .big{font-family:var(--mono);font-size:13pt;font-weight:600;color:var(--predicted);line-height:1}
+.cards p{font-size:8.6pt;color:var(--muted);line-height:1.45}
+
+.note{border-left:2pt solid var(--predicted);padding:1pt 0 1pt 11pt;font-size:9.4pt;margin-top:10pt;
+ break-inside:avoid}
+.note.b{border-left-color:var(--observed)}
+.note strong{color:var(--ink)}
+.split{display:flex;gap:20pt;margin-top:12pt;break-inside:avoid}
+.split>div{flex:1}
+ul.t{margin:6pt 0 0;padding-left:13pt;display:flex;flex-direction:column;gap:5pt;font-size:9.2pt}
+ul.t li::marker{color:var(--muted)}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunk);padding:0 3pt}
+.gloss{border:1px solid var(--line);padding:12pt;margin-top:12pt;break-inside:avoid;background:var(--sunk)}
+.gloss dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6pt 12pt;font-size:9.2pt}
+.gloss dt{font-family:var(--mono);font-weight:600;color:var(--ink);font-size:8.6pt;padding-top:1pt}
+.gloss dd{margin:0}
+.strength{font-family:var(--sans);font-size:8.4pt;font-weight:600}
+table.tight td{padding:4.4pt 9pt}
+table.tight th{padding:6pt 9pt}
+.s-hi{color:var(--good)}.s-mid{color:var(--warn)}.s-lo{color:var(--muted)}
+.verdict-line{border:1.5pt solid var(--ink);padding:10pt 13pt;margin-top:10pt;break-inside:avoid}
+.verdict-line p{font-family:var(--serif);font-size:12.5pt;line-height:1.4;color:var(--ink)}
+ol.steps{margin:8pt 0 0;padding-left:15pt;font-size:9.2pt;display:flex;flex-direction:column;gap:5pt}
+ol.steps li::marker{font-family:var(--mono);font-size:8pt;color:var(--muted)}
+.totals{display:flex;border:1.5pt solid var(--ink);margin-top:11pt;break-inside:avoid}
+.totals>div{flex:1 1 0;min-width:0;padding:9pt 11pt;border-right:1px solid var(--line-soft)}
+.totals>div:last-child{border-right:0}
+.tnum{font-family:var(--mono);font-size:15pt;font-weight:600;color:var(--ink);line-height:1;
+ display:block;font-variant-numeric:tabular-nums}
+.tlab{font-size:7.6pt;color:var(--muted);display:block;margin-top:4pt;line-height:1.35}
+.badge{font-family:var(--mono);font-size:7pt;padding:1.5pt 4pt;white-space:nowrap;display:inline-block}
+.b-free{background:#E6F0EA;color:#2A6349}
+.b-key{background:#FDF2E2;color:#8A6212}
+.b-app{background:#F1F3F6;color:#5D6673}
+.dim{color:var(--muted)}
+footer{margin-top:13pt;padding-top:7pt;border-top:1px solid var(--line);font-size:8pt;
+ color:var(--muted);line-height:1.5;break-before:avoid;break-inside:avoid}
+</style></head>
+<body>
+
+<div class="cover stack">
+<span class="eyebrow">Data inventory &middot; compiled 6 September 2026</span>
+<h1>The datasets</h1>
+<p class="lede">Every data source behind the empirical evaluation of NIST&rsquo;s LEV metric &mdash; what
+was used, at what version, for which result, and what each one cannot tell us. Plus the six further
+sources identified for the next phase.</p>
+<p class="meta"><b>A note on terminology:</b> nothing here is training data. This is a statistics and
+measurement study &mdash; no model is fitted to these sources, so they are analysis inputs and reference
+data, not a training set.</p>
+</div>
+
+<div class="totals">
+ <div><span class="tnum">5</span><span class="tlab">datasets used</span></div>
+ <div><span class="tnum">14.68 M</span><span class="tlab">records ingested</span></div>
+ <div><span class="tnum">380,880</span><span class="tlab">distinct CVEs touched</span></div>
+ <div><span class="tnum">1.8 GB</span><span class="tlab">on disk, 238 EPSS files</span></div>
+</div>
+
+<section>
+<div class="stack-s"><span class="eyebrow">Part 1</span>
+<h2>What was used</h2>
+<p>Five sources. Each row gives the exact version, because LEV values change with the analysis date and
+with the EPSS model version, so &ldquo;EPSS data&rdquo; alone would not be reproducible.</p></div>
+
+<div class="tw"><table class="tight">
+<thead><tr><th class="name" style="width:17%">Source</th><th class="name" style="width:29%">Exact version</th>
+<th class="num" style="width:13%">Records</th><th class="name">Role in the study</th></tr></thead>
+<tbody>
+<tr><td class="name"><strong>EPSS</strong><br><span class="dim">FIRST / Cyentia<br>epss.empiricalsecurity.com</span></td>
+ <td class="name">67 monthly snapshots, 1st of month, 2021-04-14 to 2026-08-01, plus the Table&nbsp;5
+ anchor dates. 171 additional daily files for the retraining-boundary probes and the daily-vs-monthly
+ check. 238 files total.</td>
+ <td class="num">14,456,555<br><span class="dim">score rows</span></td>
+ <td class="name"><strong>The sole input to LEV.</strong> Every LEV value in the study is a product over
+ these scores across 30-day windows.</td></tr>
+<tr><td class="name"><strong>CISA KEV</strong><br><span class="dim">cisa.gov</span></td>
+ <td class="name">catalogVersion 2026.08.25, released 2026-08-25T17:00:12Z. dateAdded spans 2021-11-03
+ to 2026-08-25.<br>SHA-256 <code>4ddd6177&hellip;3bb79</code></td>
+ <td class="num">1,676<br><span class="dim">entries</span></td>
+ <td class="name"><strong>The only exploitation ground truth.</strong> Defines &ldquo;observed&rdquo;
+ in every calibration figure.</td></tr>
+<tr><td class="name"><strong>CVE List v5</strong><br><span class="dim">CVE Program</span></td>
+ <td class="name">Release <code>cve_2026-08-25_1700Z</code>, asset
+ <code>2026-08-25_all_CVEs_at_midnight.zip.zip</code>, CVE-2022 onward.<br>SHA-256
+ <code>87ca8c2c&hellip;51e823</code></td>
+ <td class="num">192,054<br><span class="dim">CVE records</span></td>
+ <td class="name">CVSS v3, CWE and vendor attribution for the top-bucket stratification. 80.5% carry
+ CVSS, 81.9% vendor, 81.4% CWE.</td></tr>
+<tr><td class="name"><strong>Exploit-DB</strong><br><span class="dim">gitlab.com/exploit-database</span></td>
+ <td class="name">Snapshot committed to the repository rather than fetched, because upstream serves it
+ from a moving branch.<br>SHA-256 <code>54b9167e&hellip;df9487</code></td>
+ <td class="num">25,057<br><span class="dim">CVEs referenced</span></td>
+ <td class="name">Public-exploit availability, as one feature separating KEV from non-KEV CVEs at
+ identical LEV.</td></tr>
+<tr><td class="name"><strong>Metasploit</strong><br><span class="dim">rapid7/metasploit-framework</span></td>
+ <td class="name">Module index snapshot, also committed rather than fetched.<br>SHA-256
+ <code>c155aa27&hellip;3e5ee99</code></td>
+ <td class="num">3,185<br><span class="dim">CVEs referenced</span></td>
+ <td class="name">As above. Combined with Exploit-DB: 26,311 unique CVEs with a public exploit.</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<section>
+<div class="stack-s"><h3>Which source produces which result</h3>
+<p>So a reader can trace any figure back to its inputs.</p></div>
+<div class="tw"><table class="tight">
+<thead><tr><th class="name" style="width:26%">Result</th><th class="name" style="width:30%">Sources used</th>
+<th class="name">Headline output</th></tr></thead>
+<tbody>
+<tr><td class="name">CSWP 41 Table 5 reproduction</td><td class="name">EPSS only</td>
+ <td class="name">All four published values reproduced within 11%</td></tr>
+<tr><td class="name">Calibration / reliability</td><td class="name">EPSS + CISA KEV</td>
+ <td class="name">17.2x over-prediction; Brier 0.037, ECE 0.076</td></tr>
+<tr><td class="name">EPSS version drift</td><td class="name">EPSS only</td>
+ <td class="name">64&ndash;70% of score rise happens at retraining boundaries</td></tr>
+<tr><td class="name">Version-normalized LEV</td><td class="name">EPSS only</td>
+ <td class="name">26.9% of LEV mass is version artifact; 17.2x &rarr; 12.6x</td></tr>
+<tr><td class="name">Analysis-date sweep</td><td class="name">EPSS + CISA KEV</td>
+ <td class="name">Growth is convex, never saturates</td></tr>
+<tr><td class="name">Top-bucket stratification</td><td class="name">EPSS + KEV + CVE List v5<br>+ Exploit-DB + Metasploit</td>
+ <td class="name">14x KEV-rate spread by vendor at identical LEV</td></tr>
+<tr><td class="name">Vendor-ceiling bound</td><td class="name">EPSS + KEV + CVE List v5</td>
+ <td class="name">Over-prediction bounded at 3.4&ndash;4.1x</td></tr>
+<tr><td class="name">Sampling-error check</td><td class="name">EPSS daily files</td>
+ <td class="name">Monthly sampling costs 3.9%, unsigned</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<section>
+<div class="stack-s"><h3>The population actually analysed</h3></div>
+<div class="tw"><table class="tight">
+<tr><td class="k">367,311</td><td>CVEs with any EPSS data</td></tr>
+<tr><td class="k">&rarr; 170,614</td><td>first scored in the EPSS v3 era, 2023-03-07 onward</td></tr>
+<tr><td class="k">&rarr; 148,920</td><td>after excluding CVEs EPSS backfilled retroactively</td></tr>
+<tr><td class="k">&rarr; <strong>105,250</strong></td><td><strong>the calibration cohort</strong> &mdash;
+ also at least six months old, so each has had a chance to appear in KEV</td></tr>
+<tr class="hl"><td class="k">495</td><td>of those are in CISA KEV &mdash; a base rate of 0.47%</td></tr>
+</table></div>
+<p class="note b" style="margin-top:10pt"><strong>A coverage gap worth stating.</strong> Of the 1,676
+CISA KEV entries, <strong>1,665 have EPSS data</strong>. The remaining 11 have no EPSS score at any date
+and therefore cannot receive a LEV value at all &mdash; LEV is structurally silent on them.</p>
+</section>
+
+<section>
+<div class="stack-s"><span class="eyebrow">Part 2</span>
+<h2>What each source cannot tell us</h2>
+<p>The limitations matter more than the counts. Each is documented at the line of code that introduces
+it; the study records 44 threats to validity in total.</p></div>
+<div class="tw"><table class="tight">
+<thead><tr><th class="name" style="width:17%">Source</th><th class="name">Limitation</th></tr></thead>
+<tbody>
+<tr><td class="name"><strong>EPSS</strong></td><td class="name">Sampled monthly rather than daily
+ &mdash; measured cost 3.9% of mean LEV, and unsigned, so it adds noise not bias. Spans three model
+ retrainings; one tripled corpus scores overnight, and LEV compounds across that boundary as though it
+ were evidence of exploitation.</td></tr>
+<tr><td class="name"><strong>CISA KEV</strong></td><td class="name"><strong>Three problems.</strong>
+ (i) Incomplete by design &mdash; CISA lists only what it confirms and prioritises for federal
+ remediation. (ii) <code>dateAdded</code> is when CISA catalogued, not when exploitation happened.
+ (iii) It is an input <em>feature</em> to EPSS, so it partly predicts the very score being tested
+ against it; removing that leak moves over-prediction from 11.9x to 32.7x.</td></tr>
+<tr><td class="name"><strong>CVE List v5</strong></td><td class="name">Vendor names are unnormalised
+ CNA free text, and a CVE affecting many products is attributed to the first listed. Per-vendor counts
+ are lower bounds.</td></tr>
+<tr><td class="name"><strong>Exploit-DB<br>Metasploit</strong></td><td class="name">Record exploit
+ <em>availability</em>, not exploitation in the wild &mdash; a different and much larger population.
+ Both are also EPSS input features, so they correlate with LEV by construction. Valid as covariates;
+ <strong>not</strong> valid as a second ground truth.</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<section>
+<div class="stack-s"><span class="eyebrow">Part 3</span>
+<h2>Identified for the next phase</h2>
+<p>Access-checked 6 September 2026. All six are free; four need no account at all.</p></div>
+<div class="tw"><table class="tight">
+<thead><tr><th class="name" style="width:20%">Source</th><th style="width:11%">Access</th>
+<th class="name" style="width:32%">What it adds</th><th class="name">Caveat</th></tr></thead>
+<tbody>
+<tr><td class="name"><strong>VulnCheck KEV</strong><br><span class="dim">Community</span></td>
+ <td><span class="badge b-key">free key</span></td>
+ <td class="name">The second exploitation list. ~3.6x CISA's volume, with per-report provenance and
+ dates.</td>
+ <td class="name">A superset of CISA KEV as shipped, so an independent list must be reconstructed by
+ filtering out CISA-sourced reports.</td></tr>
+<tr><td class="name"><strong>CIRCL</strong><br><span class="dim">Vulnerability-Lookup</span></td>
+ <td><span class="badge b-free">open</span></td>
+ <td class="name">Third list. Carries Shadowserver honeypot telemetry, no contract needed.</td>
+ <td class="name">Coverage depth unverified.</td></tr>
+<tr><td class="name"><strong>ENISA EUVD</strong></td><td><span class="badge b-free">open</span></td>
+ <td class="name">Fourth list, EU-sourced, partially independent.</td>
+ <td class="name">Its KEV dump is a CISA+EU consolidation; use the exploited-flag search.</td></tr>
+<tr><td class="name"><strong>GreyNoise</strong><br><span class="dim">Research Program</span></td>
+ <td><span class="badge b-app">apply</span></td>
+ <td class="name">Internet-wide sensor telemetry &mdash; the strongest independence claim available.</td>
+ <td class="name">Reviewed application, so start early. Also an EPSS label source, so partly circular.</td></tr>
+<tr><td class="name"><strong>CISA KEV</strong><br><span class="dim">daily archive</span></td>
+ <td><span class="badge b-free">open</span></td>
+ <td class="name">Verifies <code>dateAdded</code> is never backdated, currently assumed from one
+ snapshot.</td><td class="name">None material.</td></tr>
+<tr><td class="name"><strong>EPSS</strong><br><span class="dim">full daily archive</span></td>
+ <td><span class="badge b-free">open</span></td>
+ <td class="name">Removes the 3.9% sampling approximation entirely. ~2.5 GB.</td>
+ <td class="name">No licence declared on the repository.</td></tr>
+</tbody>
+</table></div>
+<div class="totals">
+ <div><span class="tnum">6</span><span class="tlab">identified for the next phase</span></div>
+ <div><span class="tnum">11</span><span class="tlab">datasets in total</span></div>
+ <div><span class="tnum">0</span><span class="tlab">requiring paid licences</span></div>
+ <div><span class="tnum">1</span><span class="tlab">needing a reviewed application</span></div>
+</div>
+</section>
+
+<section>
+<div class="stack-s"><span class="eyebrow">Provenance</span><h3>How this stays reproducible</h3></div>
+<div class="tw"><table class="tight">
+<tr><td class="k">Pinned end date</td><td>The EPSS archive end is fixed in code at 2026-08-01. Without it
+ the loader defaults to today, and re-running weeks later silently ingests newer snapshots.</td></tr>
+<tr><td class="k">Committed sources</td><td>Exploit-DB and Metasploit are served upstream from moving
+ branches, so both snapshots are committed to the repository rather than re-fetched.</td></tr>
+<tr><td class="k">Hashes recorded</td><td>SHA-256 for every fixed-file source, with release tags,
+ retrieval dates and record counts, in <code>DATA_SNAPSHOT.md</code>.</td></tr>
+<tr><td class="k">One command</td><td><code>make fetch</code> pulls the data once;
+ <code>make reproduce</code> rebuilds every table and figure offline, in order.</td></tr>
+</table></div>
+<p class="note" style="margin-top:10pt"><strong>Two licences remain unresolved.</strong> VulnCheck's
+attribution notice is silent on peer-reviewed publication of derived data and on archiving raw data for
+reproducibility, and the EPSS history repository declares no licence at all. Both need settling in
+writing before submission.</p>
+</section>
+
+<footer>
+Data inventory for the empirical evaluation of NIST CSWP 41 (Mell &amp; Spring, <i>Likely Exploited
+Vulnerabilities</i>, May 2025). Analysis date 2026-08-01. Companions:
+<b>LEV-calibration-Phase1.pdf</b> (findings) and <b>Phase2-Datasets.pdf</b> (next-phase sourcing detail).
+Full provenance in <b>DATA_SNAPSHOT.md</b>.
+</footer>
+</body></html>
