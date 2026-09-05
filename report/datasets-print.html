@@ -60,169 +60,204 @@ li::marker{color:var(--muted)}
 footer{margin-top:14pt;padding-top:7pt;border-top:1px solid var(--line);font-size:7.8pt;
  color:var(--muted);line-height:1.5;break-inside:avoid}
 a{color:var(--observed);text-decoration:none}
-</style></head><body>
+</style></head>
+<body>
 
 <div class="cover stack">
-<span class="eyebrow">Phase 2 &middot; data sourcing &middot; verified 5 September 2026</span>
+<span class="eyebrow">Phase 2 &middot; data sourcing &middot; corrected 6 September 2026</span>
 <h1>Phase 2 datasets</h1>
-<p class="lede">Phase 1&rsquo;s blocker is that CISA KEV is our only exploitation ground truth, and it is
-incomplete. These are the sources that fix that &mdash; checked live for availability, cost, schema and
-licence rather than recalled.</p>
+<p class="lede">Which second exploitation catalogue to use, and the four reasons the obvious choice does
+not work as shipped. Supersedes the 5 September version, which contained an error that would have
+produced a silent failure in the estimator.</p>
 <p class="meta">Companion to <b>LEV-calibration-Phase1.pdf</b> &nbsp;&middot;&nbsp; machine-readable
-version in <b>DATASETS.md</b></p>
+version in <b>DATASETS.md</b> &nbsp;&middot;&nbsp; prompt in <b>RESEARCH-PROMPT.md</b></p>
 </div>
 
 <div class="headline">
-<p>The dataset that unblocks the paper is free.</p>
-<p class="sub">VulnCheck KEV Community needs a free account, not a licence. This was previously assumed
-to be a commercial purchase; it is not. There is no budget item in Phase 2.</p>
+<p>VulnCheck KEV is a superset of CISA KEV, not an independent list.</p>
+<p class="sub">Their documentation: &ldquo;encompasses all vulnerabilities listed in the CISA KEV
+catalog, plus approximately 80% more.&rdquo; Lincoln&ndash;Petersen on the pair as downloaded gives
+<code>m = |L1|</code> by construction and collapses to <code>|L2|</code>. The arithmetic runs and returns
+a plausible number &mdash; the worst kind of bug. <strong>It is still the right source</strong>, but only
+after the filter in &sect;1.</p>
 </div>
-
-<div class="tierhead"><span class="t">Tier 1</span><span class="d">Get these first</span></div>
-
-<div class="stack-s" style="margin-top:9pt">
-<h3>1. VulnCheck KEV (Community) &mdash; the one that matters</h3>
-</div>
-<div class="tw"><table>
-<tr><td class="k">Cost</td><td><span class="free">Free</span> &mdash; community account at
- <code>console.vulncheck.com</code>, generate a token</td></tr>
-<tr><td class="k">Endpoint</td><td><code>GET https://api.vulncheck.com/v3/backup/vulncheck-kev</code>
- with <code>Authorization: Bearer &lt;token&gt;</code> &mdash; returns a bulk download link</td></tr>
-<tr><td class="k">Verified</td><td>Returns HTTP 401 without a token, confirming the endpoint exists and
- needs only the free key</td></tr>
-<tr><td class="k">Rate limit</td><td>1,000 requests / minute for community users</td></tr>
-<tr><td class="k">Coverage</td><td><strong>884 KEVs added in 2026 against CISA&rsquo;s 245</strong> over
- the same period &mdash; roughly 3.6&times;</td></tr>
-<tr><td class="k">Licence</td><td>Attribution requested; formal redistribution terms
- <strong>not published</strong> &mdash; confirm before republishing raw data</td></tr>
-</table></div>
-
-<p style="margin-top:10pt"><strong>Why this source and not simply a bigger one.</strong> Its schema is
-close to purpose-built for the estimator we need:</p>
-<pre>cve[], cwes[], vendorProject, product,
-date_added                                 &lt;- VulnCheck's own first-report date
-cisa_date_added                            &lt;- CISA's, inside the same record
-vulncheck_reported_exploitation[]          &lt;- {url, date_added} per reporting source
-vulncheck_xdb[]                            &lt;- {xdb_id, exploit_type, date_added}
-reported_exploited_by_vulncheck_canaries   &lt;- honeypot-observed (boolean)</pre>
-
-<p style="margin-top:9pt"><code>cisa_date_added</code> sitting inside every VulnCheck record means the
-CISA subset is identifiable <strong>without a join</strong> &mdash; the overlap that capture&ndash;recapture
-consumes comes free and unambiguous, with no fuzzy matching to defend in review.
-<code>vulncheck_reported_exploitation[]</code> goes further, naming each independent reporting source with
-its own date, so the estimator extends to many sources without acquiring them separately.
-<code>reported_exploited_by_vulncheck_canaries</code> is honeypot-observed exploitation &mdash; sensor
-evidence rather than curated advisories, so it is genuinely independent of the process that builds CISA
-KEV.</p>
-
-<div class="stack-s" style="margin-top:15pt">
-<h3>2. CISA KEV daily archive &mdash; fixes an existing threat, costs nothing</h3>
-<p>We currently hold <em>one</em> snapshot of KEV and trust its <code>dateAdded</code> field. Daily
-archives let us verify that field is never backdated or revised &mdash; README threat 17, presently
-stated but unverified. It also makes the as-of-date KEV rates in <code>dn_sweep.py</code> and
-<code>plateau.py</code> genuinely point-in-time rather than reconstructed from a single file.</p>
-</div>
-<div class="tw"><table>
-<tr><td class="k">Source</td><td><code>github.com/cisagov/kev-data</code> (official) or
- <code>github.com/hrbrmstr/cisa-known-exploited-vulns</code> (MIT, daily ISO-stamped snapshots)</td></tr>
-<tr><td class="k">Cost</td><td><span class="free">Free</span></td></tr>
-</table></div>
-
-<div class="stack-s" style="margin-top:15pt">
-<h3>3. Full daily EPSS archive</h3>
-<p>Removes the 3.9% monthly-sampling approximation entirely. Not urgent &mdash; that error is measured
-and bounded &mdash; but required if any claim ever turns on a difference of that size.</p>
-</div>
-<div class="tw"><table>
-<tr><td class="k">Source</td><td><code>github.com/empiricalsec/epss_scores</code> &mdash; official
- historical repository, ~2.5 GB</td></tr>
-<tr><td class="k">Cost</td><td><span class="free">Free</span>; no licence declared on the repository,
- worth confirming for redistribution</td></tr>
-</table></div>
-
-<div class="tierhead"><span class="t">Tier 2</span><span class="d">Strengthens the independence
-argument</span></div>
-
-<div class="stack-s" style="margin-top:9pt">
-<h3>4. GreyNoise &mdash; Community Research Program</h3>
-<p>Observed scanning and exploitation attempts from sensors. Its independence from KEV is the strongest
-of any source here: it observes traffic rather than curating advisories, so its blind spots are
-uncorrelated with CISA&rsquo;s &mdash; which is exactly the assumption capture&ndash;recapture requires.</p>
-</div>
-<div class="tw"><table>
-<tr><td class="k">Cost</td><td><span class="free">Free</span> for non-commercial research &mdash;
- <strong>application required and reviewed</strong>, so apply early</td></tr>
-<tr><td class="k">Apply</td><td><code>info.greynoise.io/community/research-program-request</code></td></tr>
-<tr><td class="k">Gives</td><td>Full Enterprise API including historical data</td></tr>
-</table></div>
-
-<div class="stack-s" style="margin-top:15pt">
-<h3>5. Nuclei templates</h3>
-<p>A community-written detection template for a CVE is evidence someone judged it worth detecting in the
-wild. A weaker signal than the others, but MIT-licensed and trivially joinable, and it extends the
-exploit-availability axis already built from Exploit-DB and Metasploit.</p>
-</div>
-<div class="tw"><table>
-<tr><td class="k">Source</td><td><code>github.com/projectdiscovery/nuclei-templates</code></td></tr>
-<tr><td class="k">Licence</td><td><strong>MIT</strong> &mdash; the cleanest terms of anything on this
- list</td></tr>
-</table></div>
-
-<div class="tierhead"><span class="t">Tier 3</span><span class="d">Optional, low recall</span></div>
-<div class="tw"><table>
-<thead><tr><th style="width:23%">Source</th><th>Assessment</th></tr></thead>
-<tr><td class="k">Project Zero<br>0day In the Wild</td><td>~150&ndash;200 CVEs, very high precision. Lives
- in a Google Sheet, not the GitHub repository &mdash; checked, the repo holds only root-cause analyses.
- A gold-standard spot check; far too small to estimate from.</td></tr>
-<tr><td class="k">AttackerKB<br>(Rapid7)</td><td>Read-only API, but only ~300 CVEs carry usable ratings,
- and they are human judgement rather than observation.</td></tr>
-<tr><td class="k">Shadowserver</td><td>Public dashboard needs no account; bulk research data needs an
- Alliance partnership or reciprocal data-sharing agreement via <code>contact@shadowserver.org</code>.
- Slow to arrange &mdash; pursue only if GreyNoise is declined.</td></tr>
-</table></div>
 
 <section>
-<div class="stack-s">
-<span class="eyebrow">Consequence</span>
-<h2>What this changes about the paper</h2>
-<p>With VulnCheck KEV alone, three things become possible for the first time.</p>
-</div>
-<ol>
-<li>Estimate exploitation that <strong>neither</strong> catalog recorded, via stratified
-capture&ndash;recapture &mdash; replacing the vendor-ceiling bound whose weakness is already flagged as a
-limitation.</li>
-<li>Test whether the over-confidence shrinks against a <strong>broader</strong> ground truth. VulnCheck
-is ~3.6&times; larger, so if the 17.2&times; gap is mostly catalog blindness it should fall sharply; if it
-barely moves, that is evidence the residual is LEV error. <strong>Either result is publishable</strong>,
-which is what makes this the right next step rather than a gamble.</li>
-<li>Use <code>vulncheck_reported_exploitation[]</code> to stratify by <em>reporting source</em> and test
-whether the visibility bias found in CISA KEV &mdash; 32.5% of Microsoft CVEs against 2.3% of
-XWiki&rsquo;s, at identical LEV &mdash; reproduces in an independent catalog.</li>
-</ol>
-<p class="note b" style="margin-top:11pt"><strong>Do not drop CISA KEV.</strong> The comparison between
-the two catalogs is the measurement, so both are required. VulnCheck replaces nothing.</p>
+<div class="stack-s"><span class="eyebrow">Correction 1</span>
+<h2>Constructing an independent list from VulnCheck</h2>
+<p>The schema exposes provenance per report, so a CISA-free list <code>L2'</code> can be built rather
+than assumed. <code>cisa_date_added</code> is the marker of contamination, not a convenient join.</p></div>
+<div class="tw"><table>
+<tr><td class="k">1</td><td>Drop <code>cisa_date_added</code> entirely.</td></tr>
+<tr><td class="k">2</td><td>Filter <code>vulncheck_reported_exploitation[]</code> to reports whose URL
+ host is not <code>cisa.gov</code> / <code>www.cisa.gov</code>.</td></tr>
+<tr><td class="k">3</td><td>Keep a CVE only if a report survives step 2, <strong>or</strong>
+ <code>reported_exploited_by_vulncheck_canaries == true</code>.</td></tr>
+<tr><td class="k">4</td><td>First-observation date = <code>min(date_added)</code> over surviving
+ reports.</td></tr>
+</table></div>
+<p class="note b">The canaries flag is VulnCheck&rsquo;s own honeypot telemetry, structurally independent
+of CISA. <strong>That subset alone is a defensible L2</strong> if the URL filter draws reviewer
+objections. Document the filter in the paper &mdash; it is a methodological contribution in its own
+right, and no prior work does it.</p>
 </section>
 
 <section>
-<div class="stack-s">
-<span class="eyebrow">Open</span>
-<h3>What could not be verified, and matters before submission</h3>
-</div>
-<p class="note"><strong>Licensing is unresolved on the two most important sources.</strong> VulnCheck
-publishes no formal redistribution terms &mdash; they request prominent attribution, but nothing states
-whether derived data may be published alongside a paper or archived for reproducibility. The EPSS
-historical repository declares no licence at all. One email to each settles both, and it should happen
-before submission rather than after review.</p>
-<p class="note g" style="margin-top:9pt"><strong>Everything above is free.</strong> Verified 5 September
-2026. The only resource cost in Phase 2 is roughly 50 GB of disk for the full daily EPSS archive.</p>
+<div class="stack-s"><span class="eyebrow">Correction 2</span>
+<h2>Four sources measure the wrong quantity</h2>
+<p>Exploit-DB, Metasploit, Nuclei and AttackerKB record exploit <em>availability</em>, or analyst
+assessment of it &mdash; not exploitation in the wild. A CVE with a Metasploit module and no observed
+attack traffic is a capture in that list and a non-capture in CISA KEV, so including it estimates
+&ldquo;CVEs with public tooling&rdquo;: a different and much larger population.</p></div>
+<p class="note"><strong>Exclude all four as capture lists. Keep them as covariates.</strong> A CVE with a
+public PoC is more likely to be captured by <em>every</em> list, which is exactly the dependence the
+model has to absorb. This is an estimand objection, not an access one.</p>
+</section>
+
+<section>
+<div class="stack-s"><span class="eyebrow">Correction 3</span>
+<h2>Circularity with EPSS &mdash; and it reaches Phase 1</h2>
+<p>EPSS&rsquo;s exploitation labels come from Fortinet, AlienVault, Shadowserver and GreyNoise
+(Jacobs et al., arXiv:2302.14172). LEV is computed <em>from</em> EPSS, so validating LEV against
+GreyNoise or Shadowserver is partly circular.</p></div>
+<p class="note"><strong>Worse, and this hits work already done.</strong> CISA KEV is an input
+<em>feature</em> to EPSS v3 &mdash; &ldquo;Public vulnerability lists (3 features): CISA KEV, Google
+Project Zero, Trend Micro ZDI.&rdquo; Phase 1 therefore compared a predictor that has the outcome baked
+into it. Measured in <code>analysis/leakage.py</code>:</p>
+<div class="tw"><table>
+<thead><tr><th>Cohort</th><th class="num">n</th><th class="num">in KEV</th><th class="num">mean LEV</th>
+<th class="num">observed</th><th class="num">over-confidence</th></tr></thead>
+<tr><td>All CVEs, as reported in Phase 1</td><td class="num">100,905</td><td class="num">471</td>
+ <td class="num">0.0555</td><td class="num">0.00467</td><td class="num">11.9&times;</td></tr>
+<tr><td>Leak-free (not on KEV when the model was trained)</td><td class="num">100,598</td>
+ <td class="num">164</td><td class="num">0.0533</td><td class="num">0.00163</td>
+ <td class="num"><strong>32.7&times;</strong></td></tr>
+</table></div>
+<p style="margin-top:9pt">The direction is the good one for the central claim: <strong>over-confidence
+nearly triples once the leak is removed</strong>, so the published 17.2&times; and 12.6&times; figures are
+<em>conservative</em>. A model partly told the answer still over-predicts by an order of magnitude.</p>
+<p class="note b">It cuts the other way on discrimination. Leak-free, the observed/predicted ratio spans
+only 0.019&ndash;0.047 across the ten buckets, against 0.010&ndash;0.131 with the leak included. The top
+bucket&rsquo;s departure from the plateau &mdash; 3.29&times; raw, 2.31&times; normalized &mdash; is
+<strong>largely circularity</strong>. Soften the top-bucket claims; keep the over-confidence claim.</p>
+</section>
+
+<section>
+<div class="stack-s"><span class="eyebrow">Correction 4</span>
+<h2>Independence is violated everywhere &mdash; model it, do not assume it</h2>
+<p>Every catalogue in this space reads the same vendor advisories and the same security blogs. Naive
+two-source Lincoln&ndash;Petersen assumes independent capture and will be rejected in review.</p></div>
+<div class="tw"><table>
+<tr><td class="k">Log-linear MSE</td><td>Interaction terms across &ge; 3 lists, so positive list
+ dependence is a fitted parameter rather than an assumption.</td></tr>
+<tr><td class="k">Stratification</td><td>By vendor tier and disclosure year. Phase 1 already measured
+ capture probability varying 14&times; by vendor; pooling gives the classic downward-biased estimate.</td></tr>
+<tr><td class="k">Chao lower bound</td><td>Robustness check &mdash; consistent under unmodelled
+ heterogeneity, and gives a defensible floor.</td></tr>
+</table></div>
+<p style="margin-top:9pt">A third list is what makes the log-linear approach possible at all.</p>
+</section>
+
+<section>
+<div class="stack-s"><span class="eyebrow">Ranking</span>
+<h2>Which sources, in order</h2></div>
+<div class="tw"><table>
+<thead><tr><th style="width:6%">#</th><th style="width:26%">Source</th><th>Verdict</th></tr></thead>
+<tr><td class="rank">1</td><td class="k">VulnCheck KEV<br>Community</td><td><strong>Best.</strong> The
+ only source with per-report provenance and dates, so independence can be <em>constructed</em> rather
+ than asserted. Free, one API key, single bulk download.</td></tr>
+<tr><td class="rank">2</td><td class="k">CIRCL<br>Vulnerability-Lookup</td><td><strong>Best third
+ list.</strong> No auth at all. Carries Shadowserver honeypot data via the ShadowSight feeder with
+ <code>type=exploited</code> &mdash; real sensor telemetry without a Shadowserver contract. Coverage
+ depth unverified.</td></tr>
+<tr><td class="rank">3</td><td class="k">ENISA EUVD</td><td>Good third or fourth list, no auth,
+ EU-sourced. <code>/api/kev/dump</code> is explicitly a CISA+EU consolidation &mdash; use
+ <code>/api/search?exploited=true</code> and treat the KEV dump as contaminated.</td></tr>
+<tr><td class="rank">4</td><td class="k">GreyNoise</td><td>Strong data and genuinely independent of CISA,
+ but EPSS-circular per correction 3, and access is reviewed rather than instant. Apply now regardless
+ &mdash; it is the long pole.</td></tr>
+<tr><td class="rank">5</td><td class="k">Project Zero<br>0day ITW</td><td>Small N, browser and mobile
+ skewed, and itself an EPSS feature. Not a second list; a high-precision stratum at best.</td></tr>
+<tr><td class="rank">6</td><td class="k">Shadowserver<br>(direct)</td><td>Effectively unobtainable
+ &mdash; reports are scoped to IP space you can prove you own. Route via CIRCL instead.</td></tr>
+<tr><td class="rank">&mdash;</td><td class="k">Exploit-DB, Metasploit<br>Nuclei, AttackerKB</td>
+ <td>Excluded on <strong>estimand</strong> grounds (correction 2), not access grounds.</td></tr>
+</table></div>
+<p class="note" style="margin-top:10pt"><strong>If only one: VulnCheck KEV Community.</strong> It is the
+only candidate where the schema itself lets you demonstrate independence to a reviewer, rather than argue
+for it. Everything else requires an assumption you cannot support with a field name.</p>
+</section>
+
+<section>
+<div class="stack-s"><span class="eyebrow">Access</span><h2>Where to get them</h2></div>
+<div class="tierhead"><span class="t">No auth</span><span class="d">Fetch today</span></div>
+<div class="tw"><table>
+<tr><td class="k">CISA KEV</td><td><code>cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json</code></td></tr>
+<tr><td class="k">CISA KEV history</td><td><code>github.com/cisagov/kev-data</code> &middot;
+ <code>github.com/hrbrmstr/cisa-known-exploited-vulns</code> (MIT, daily snapshots)</td></tr>
+<tr><td class="k">EPSS history</td><td><code>github.com/empiricalsec/epss_scores</code> &mdash; ~2.5 GB,
+ no licence declared</td></tr>
+<tr><td class="k">ENISA EUVD</td><td><code>euvdservices.enisa.europa.eu/api/search?exploited=true</code>
+ &middot; id map at <code>/api/dump/cve-euvd-mapping</code></td></tr>
+<tr><td class="k">CIRCL sightings</td><td><code>vulnerability.circl.lu/api/sighting/?vuln_id=CVE-XXXX-NNNNN</code></td></tr>
+</table></div>
+<div class="tierhead"><span class="t">Free key</span><span class="d">Minutes to obtain</span></div>
+<div class="tw"><table>
+<tr><td class="k">VulnCheck KEV</td><td><code>api.vulncheck.com/v3/backup/vulncheck-kev</code> with
+ <code>Authorization: Bearer &lt;token&gt;</code>. Take the bulk ZIP, not per-CVE calls. 1,000
+ req/min.</td></tr>
+<tr><td class="k">GreyNoise<br>Community</td><td><code>api.greynoise.io/v3/community/{ip}</code> &mdash;
+ signup <strong>rejects gmail</strong>, use the institutional address</td></tr>
+</table></div>
+<div class="tierhead"><span class="t">Reviewed</span><span class="d">Start first &mdash; human
+turnaround</span></div>
+<div class="tw"><table>
+<tr><td class="k">GreyNoise<br>Research</td><td><code>info.greynoise.io/community/research-program-request</code>
+ &mdash; full Enterprise API, free for research. <strong>The long pole; apply now.</strong></td></tr>
+<tr><td class="k">Shadowserver</td><td><code>transform.shadowserver.org/api2/</code> &mdash; normally
+ granted only for IP space you can prove you own. Treat as unavailable.</td></tr>
+</table></div>
+</section>
+
+<section>
+<div class="stack-s"><span class="eyebrow">Prior work</span><h2>Nothing found on either question</h2></div>
+<div class="tw"><table>
+<tr><td class="k">Capture&ndash;recapture on<br>catalogue completeness</td><td><strong>None found.</strong>
+ Nearest adjacent work is descriptive overlap comparison, not estimation. This is the strongest novelty
+ claim available.</td></tr>
+<tr><td class="k">LEV evaluation<br>since May 2025</td><td><strong>None found peer-reviewed.</strong>
+ Cite and differentiate: a reference implementation (RiskBasedPrioritization/LEV); a theoretical
+ objection that CSWP 41 misreads EPSS as past rather than next-30-days exploitation; Parla
+ (arXiv:2411.02618); and arXiv:2506.01220, which reports 48 exploited CVEs caught by neither KEV nor
+ EPSS individually &mdash; the closest existing result. NIST itself states it is seeking partners with
+ real-world datasets to evaluate LEV; cite as motivation.</td></tr>
+</table></div>
+<p class="note" style="margin-top:10pt"><strong>This was a targeted search, not a systematic one.</strong>
+Before submission, sweep arXiv cs.CR, WEIS, eCrime, ACM CCS and IEEE S&amp;P from June 2025 onward for
+LEV specifically. One missed prior evaluation costs the novelty claim.</p>
+<p class="note" style="margin-top:9pt"><strong>Licensing is still unresolved.</strong> VulnCheck's
+Attribution Notice covers use &ldquo;in your own production, solution, or service&rdquo; and is
+<em>silent</em> on peer-reviewed publication of derived data and on archiving raw data. Email
+<code>community@vulncheck.com</code> and get it in writing. The EPSS history repository declares no
+licence at all.</p>
+</section>
+
+<section>
+<div class="stack-s"><span class="eyebrow">Actions</span><h2>Do this week</h2></div>
+<ol>
+<li>Register VulnCheck Community, pull <code>/v3/backup/vulncheck-kev</code>, and build
+<code>L2'</code> per the &sect;1 filter. That unblocks the whole study.</li>
+<li>Apply to the GreyNoise Research Community. Reviewed by a human, so it is the long pole.</li>
+<li>Email <code>community@vulncheck.com</code> on publication and archival rights, in writing.</li>
+<li>Run the systematic prior-art sweep before committing to the novelty claim.</li>
+</ol>
 </section>
 
 <footer>
-Sources checked 5 September 2026 &mdash;
-vulncheck.com/kev &middot; docs.vulncheck.com/community/vulncheck-kev/schema &middot;
-docs.vulncheck.com/api/v3 &middot; vulncheck.com/blog/state-of-exploitation-2026 &middot;
-info.greynoise.io/community/research-program-request &middot; github.com/cisagov/kev-data &middot;
-github.com/empiricalsec/epss_scores &middot; first.org/epss/data &middot;
-github.com/projectdiscovery/nuclei-templates &middot; googleprojectzero.blogspot.com/p/0day.html
+Corrected 6 September 2026. Sources: docs.vulncheck.com/community/vulncheck-kev &middot;
+arxiv.org/abs/2302.14172 (EPSS v3 features and labels) &middot; vulnerability.circl.lu &middot;
+euvd.enisa.europa.eu/apidoc &middot; info.greynoise.io/community/research-program-request &middot;
+github.com/cisagov/kev-data &middot; github.com/empiricalsec/epss_scores.
+Leakage figures from analysis/leakage.py; see README threats 41&ndash;44.
 </footer>
 </body></html>
