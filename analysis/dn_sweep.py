@@ -352,7 +352,7 @@ def main():
             print("  window, so LEV drifts toward 1.0 for every surviving CVE and")
             print("  loses discriminative power for ranking as dn advances.")
     print("\nCONFOUND: the sweep spans two EPSS retrainings (v2025.03.14 seen from")
-    print("2025-04-01, v2026.06.15 from 2026-07-01), each of which raised scores")
+    print("2025-04-01, v2026.06.15 from 2026-07-01), each of which shifted scores")
     print("corpus-wide. Both cohorts kink there. The within-regime shape above is")
     print("the cleaner read on LEV's own accumulation; the full-sweep rate mixes")
     print("it with score-level shifts CSWP 41 does not model.")

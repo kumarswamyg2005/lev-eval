@@ -24,7 +24,7 @@ per-report provenance (the research brief's L2'):
   5. its date is the earliest surviving report
 
 First run (2026-09-28): 5,371 records -> 4,815 CVEs.  For 78% of CISA-listed
-CVEs the earliest surviving report predates CISA's listing (median 24 days
+CVEs the earliest surviving report predates CISA's listing (median 28 days
 earlier), so the remaining evidence is not an echo of CISA.
 
 The raw download stays in cache/ (gitignored): VulnCheck's terms do not say

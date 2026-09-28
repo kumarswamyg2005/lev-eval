@@ -216,6 +216,20 @@ def chao_lower_bound(H):
     return N, (S + T / C, S + T * C), S, f1, f2
 
 
+def stratified_chao_lo(H, lev):
+    """Sum over LEV strata of Chao's lower CI end (observed count if f2 = 0).
+
+    A heterogeneity-robust floor for a POOLED estimate: Chao is valid within
+    each stratum, and stratifying on LEV absorbs the capture heterogeneity that
+    a pooled log-linear model cannot.  A pooled N_hat below it is biased low.
+    """
+    floor = 0.0
+    for lo, hi in STRATA:
+        _, ci, S, *_ = chao_lower_bound(H[((lev >= lo) & (lev < hi)).to_numpy()])
+        floor += ci[0] if np.isfinite(ci[0]) else S
+    return floor
+
+
 def chapman(H, a, b):
     """Two-list Chapman estimator -- valid only if the lists are independent."""
     n1, n2 = int(H[a].sum()), int(H[b].sum())
@@ -224,7 +238,7 @@ def chapman(H, a, b):
 
 
 # --------------------------------------------------------------- analysis
-def estimate(H, label, n_pop=None, verbose=True):
+def estimate(H, label, n_pop=None, verbose=True, floor=None):
     """Log-linear estimate with the checks that make it reportable.
 
     NOT IDENTIFIED is declared, and no point estimate reported, when either
@@ -237,7 +251,10 @@ def estimate(H, label, n_pop=None, verbose=True):
       * the estimate falls below the lower end of Chao's CI.  Chao's estimator
         is a lower bound that stays valid under heterogeneous capture
         probabilities, so a log-linear estimate beneath it means the model's
-        homogeneity assumption is violated in that population.
+        homogeneity assumption is violated in that population; or
+      * for a pooled population, it falls below `floor`, the stratified Chao
+        bound (stratified_chao_lo) -- the same rule, applied where pooling
+        over LEV strata hides heterogeneity from the pooled Chao bound.
     A model-averaged N (Akaike weights) is reported alongside the selected one.
     """
     fits = loglinear(H)
@@ -259,7 +276,9 @@ def estimate(H, label, n_pop=None, verbose=True):
     spread = max(close) / min(close)
     lo, hi = bootstrap_ci(H, best["_inter"])
     below_chao = np.isfinite(chao_ci[0]) and best["N_hat"] < chao_ci[0]
-    identified = spread <= 2 and best["N_hat"] <= n_pop and not below_chao
+    below_floor = floor is not None and best["N_hat"] < floor
+    identified = (spread <= 2 and best["N_hat"] <= n_pop and not below_chao
+                  and not below_floor)
     if spread > 2:
         reason = f"models within 2 AIC span {min(close):.0f}-{max(close):.0f}"
     elif best["N_hat"] > n_pop:
@@ -267,6 +286,9 @@ def estimate(H, label, n_pop=None, verbose=True):
     elif below_chao:
         reason = (f"N_hat {best['N_hat']:.0f} below Chao lower bound "
                   f"{chao_ci[0]:.0f} -- heterogeneity violates the model")
+    elif below_floor:
+        reason = (f"N_hat {best['N_hat']:.0f} below stratified Chao bound "
+                  f"{floor:.0f} -- pooling across LEV strata biases it low")
     else:
         reason = ""
     res.update({"identified": bool(identified), "reason": reason,
@@ -287,7 +309,7 @@ def estimate(H, label, n_pop=None, verbose=True):
     return res
 
 
-def truth_ladder(H, lev, label):
+def truth_ladder(H, lev, label, floor=None):
     """Over-confidence against progressively stronger notions of 'truth'.
 
     Each rung adds one assumption to the rung above it, so a reader can stop
@@ -317,7 +339,7 @@ def truth_ladder(H, lev, label):
     chao, chao_ci, *_ = chao_lower_bound(H)
     add("Chao lower bound", "closed population; robust to heterogeneity",
         chao, *chao_ci)
-    e = estimate(H, label, verbose=False)
+    e = estimate(H, label, verbose=False, floor=floor)
     if e.get("identified"):
         add("log-linear (AIC-selected)", "+ no three-way interaction",
             e["N_hat"], *e["ci"])
@@ -357,7 +379,8 @@ def list_set_grid(H_all, lev):
             n, ml = len(Hs), float(ls.mean())
             union = int((Hs.sum(axis=1) > 0).sum())
             chao, chao_ci, *_ = chao_lower_bound(Hs)
-            e = estimate(Hs, sname, verbose=False)
+            e = estimate(Hs, sname, verbose=False,
+                         floor=stratified_chao_lo(Hs, ls) if sname == "all LEV" else None)
             ll = (f"{ml / (e['N_hat'] / n):.2f}x [{ml / (e['ci'][1] / n):.2f}, "
                   f"{ml / (e['ci'][0] / n):.2f}]") if e.get("identified") else "n.i."
             rows.append({"lists": name, "stratum": sname, "n": n,
@@ -407,7 +430,7 @@ def main():
         print(f"    {a:>7} x {b:<7} n1={n1:<4} n2={n2:<4} overlap={m:<4} N={N:,.0f}")
     print("  -> they disagree by >2x, so list dependence must be modelled.")
 
-    overall = estimate(H, "ALL LEV, 3-list log-linear")
+    overall = estimate(H, "ALL LEV, 3-list log-linear", floor=stratified_chao_lo(H, lev))
 
     # SOCIAL is mostly Telegram, where actors also post mass lists of CVEs they
     # claim to use -- a false-positive risk.  If SOCIAL-only singletons dominate
@@ -423,7 +446,7 @@ def main():
                               for c in H.columns))
 
     print(f"\n{'=' * 90}\nTRUTH LADDER -- over-confidence vs increasingly assumption-laden truth\n{'=' * 90}")
-    ladder = truth_ladder(H, lev, "ALL LEV")
+    ladder = truth_ladder(H, lev, "ALL LEV", floor=stratified_chao_lo(H, lev))
 
     strata_ladders, strata_est = {}, {}
     for lo_, hi_ in STRATA:
@@ -443,10 +466,12 @@ def main():
     Hf = histories(wide.index[full], lists)[primary]
     levf = levmod.lev(norm_wide[full], first_idx[full], dn=DN)
     born_in = (fd[full] >= SENSOR_START).to_numpy()
-    sens = {"born before sensor window": truth_ladder(Hf[~born_in], levf[~born_in],
-                                                      "born BEFORE sensor window"),
-            "born inside sensor window": truth_ladder(Hf[born_in], levf[born_in],
-                                                      "born INSIDE sensor window")}
+    sens = {"born before sensor window": truth_ladder(
+                Hf[~born_in], levf[~born_in], "born BEFORE sensor window",
+                floor=stratified_chao_lo(Hf[~born_in], levf[~born_in])),
+            "born inside sensor window": truth_ladder(
+                Hf[born_in], levf[born_in], "born INSIDE sensor window",
+                floor=stratified_chao_lo(Hf[born_in], levf[born_in]))}
 
     # ------------------------------------------------------------- figure
     fig, ax = plt.subplots(figsize=(7.2, 5.0))
@@ -466,9 +491,9 @@ def main():
             label="log-linear estimate (identified strata only)")
     ax.set_xscale("log"); ax.set_yscale("log")
     ax.set_xlim(5e-3, 1.5); ax.set_ylim(3e-4, 1.5)
-    # The lowest stratum's upper points are driven by Telegram-only sightings
-    # (86% of its singletons) -- say so on the plot, or the Chao point above
-    # the diagonal reads as "LEV under-confident at low scores".
+    # The lowest stratum's upper points are driven by single-list VulnCheck
+    # captures (99% of its singletons) -- say so on the plot, or the Chao point
+    # above the diagonal reads as "LEV under-confident at low scores".
     for name, x in zip(names, xs):
         e = strata_est[name]
         if not e.get("identified"):

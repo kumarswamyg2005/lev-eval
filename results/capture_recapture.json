@@ -599,7 +599,7 @@
       "n": 54612,
       "union": 3.203039054113692,
       "chao": 2.4852260120367062,
-      "loglinear": "2.63x [2.36, 2.93]"
+      "loglinear": "n.i."
     },
     {
       "lists": "CISA+SENSOR+VULNCHK_STRICT (precision check)",

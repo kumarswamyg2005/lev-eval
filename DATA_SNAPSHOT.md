@@ -17,7 +17,7 @@ snapshot). Table 5 reproduction uses `dn` = 2025-03-01.
 |---|---|
 | date range | 2021-04-14 to 2026-08-01 |
 | snapshots used in analysis | 67 (monthly, 1st of month + Table 5 anchor dates) |
-| files in cache | 238 (67 monthly + 171 daily: retraining-boundary probes and the daily-vs-monthly sampling check) |
+| files in cache | 238 (67 monthly + 170 daily: retraining-boundary probes and the daily-vs-monthly sampling check; plus 2026-09-01, fetched before `ARCHIVE_END` was pinned and unused) |
 | tidy rows | 14,456,555 |
 | unique CVEs | 367,311 |
 | KEV entries with EPSS data | 1,665 of 1,676 (11 have no score at any date) |

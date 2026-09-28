@@ -25,10 +25,10 @@ no list recorded. Two lists that appear independent of KEV turn out to contain
 all of it, and a third contains the whole of a fourth. Once those overlaps
 are removed, counting alone attributes about two-thirds of the KEV-measured
 over-prediction to catalogue incompleteness. Against model-based estimates of
-true exploitation, LEV over-predicts by about 2-2.6x wherever the estimate is
+true exploitation, LEV over-predicts by about 2-2.5x wherever the estimate is
 identified. A monotone correction fitted one year earlier transfers exactly to
-unseen CVEs against the broader ground truth, but drifts against KEV, because
-the same LEV means different things at different CVE ages.
+unseen CVEs against the broader ground truth, but drifts against KEV and
+across birth cohorts, because the same LEV means different things at different CVE ages.
 
 # 1 Introduction
 
@@ -85,10 +85,11 @@ Our contributions:
    Shadowserver honeypot list. With the dependence removed, counting alone
    attributes about two-thirds of the KEV-measured gap to catalogue
    incompleteness, and log-linear capture-recapture models put LEV's own
-   over-prediction at about 2-2.6x.
+   over-prediction at about 2-2.5x.
 5. **A validated correction.** We fit a monotone map from LEV to observed
    exploitation and validate it prospectively on CVEs it never saw. Against the
-   broader ground truth it transfers exactly; against KEV it drifts, which
+   broader ground truth it transfers exactly a year ahead; against KEV, and
+   across birth cohorts, it drifts, which
    exposes a further property of LEV: its meaning depends on CVE age.
 
 All data snapshots, hashes and code are released, and one command regenerates
@@ -229,11 +230,11 @@ Shadowserver's dashboard (401,967 reports), and every one of the 969 SENSOR
 CVEs appears in VulnCheck's Shadowserver subset, so we drop those reports too.
 What remains is VulnCheck's own honeypot canaries, SANS DShield, CrowdSec,
 vendor advisories and threat reports. For 78% of CISA-listed CVEs the earliest
-remaining report predates CISA's listing (median 24 days), so the remainder is
+remaining report predates CISA's listing (median 28 days), so the remainder is
 not an echo of CISA.
 
-EU KEV lists 66 CVEs; 55 are also on CISA KEV and 88% of those carry CISA's own
-date, so we treat it as derivative. ENISA's exploited-flag search returns the
+EU KEV lists 66 CVEs; 55 are also on CISA KEV, and 36 of the 41 in our KEV
+snapshot (88%) carry CISA's own date, so we treat it as derivative. ENISA's exploited-flag search returns the
 same consolidated set. Exploit-DB records exploit availability, not
 exploitation, and is excluded.
 
@@ -254,7 +255,8 @@ these appear on at least one of the primary lists.
 log-linear models to the seven observable capture patterns under every
 hierarchical structure of two-way interactions, assume no three-way
 interaction (the standard identifying assumption [12, 13]), select by AIC, and
-bootstrap a 95% interval from the fitted cell means. Chao's estimator [14],
+bootstrap a 95% interval from the fitted cell means (1,000 replicates; other
+seeds, or 10,000 replicates, move the endpoints by at most 0.06). Chao's estimator [14],
 a lower bound that stays valid under heterogeneous capture probabilities, is
 reported alongside.
 
@@ -262,7 +264,9 @@ reported alongside.
 be driven entirely by the choice of interaction terms. We declare a population
 not identified, and report no point estimate, if models within 2 AIC of the
 best disagree by more than 2x [15], if the estimate exceeds the population, or
-if it falls below the lower end of Chao's interval.
+if it falls below the lower end of Chao's interval. For a population pooled
+over LEV strata the last rule uses the sum of the per-stratum Chao bounds,
+since pooling hides the heterogeneity that stratification absorbs.
 
 **The truth ladder.** Rather than one estimate, we report LEV's over-confidence
 (mean LEV over the exploitation rate) against successively stronger notions of
@@ -346,7 +350,7 @@ above LEV 0.9 roughly doubles by 2028, and LEV loses discrimination as more of
 the corpus approaches 1.
 
 Monotone growth is a property of the equation, not a finding. The empirical
-content is the shape: no saturation within 35 months, and no evidence of the
+content is the shape: no saturation within 34 months, and no evidence of the
 decay the white paper relies on.
 
 ![Figure 3. LEV for fixed cohorts as the analysis date advances. Dotted lines mark retrainings.](../figures/dn_sweep.png)
@@ -410,7 +414,7 @@ every configuration.
 | lists | LEV [0.9, 1.0] | LEV [0.1, 0.9) | all LEV |
 |---|---|---|---|
 | CISA, SENSOR, VULNCHK (primary) | 2.04x [1.80, 2.32] | 2.45x [1.91, 3.07] | not identified |
-| CISA, SENSOR, strict VULNCHK | 2.12x [1.84, 2.42] | not identified | 2.63x [2.36, 2.93] |
+| CISA, SENSOR, strict VULNCHK | 2.12x [1.84, 2.42] | not identified | not identified |
 | CISA, SENSOR, SOCIAL | 2.07x [1.73, 2.43] | not identified | not claimed (0.98x) |
 | all four | 1.54x [0.70, 2.02] | not identified | not claimed (0.35x) |
 | CISA, SOCIAL, VULNCHK (no SENSOR) | not identified | not identified | not identified |
@@ -425,8 +429,9 @@ sightings enter a four-list model. The strict configuration keeps a VulnCheck
 CVE only if a sensor saw it or at least two independent sources reported it
 (2,912 CVEs). It matters because VulnCheck now supplies 84-99% of the CVEs seen
 by a single list, and 65% of the VulnCheck-only CVEs rest on one text report.
-Under the strict list the top stratum still gives 2.12x, and the pooled
-estimate becomes identified at 2.63x [2.36, 2.93]. The middle stratum does
+Under the strict list the top stratum still gives 2.12x. The pooled strict
+estimate (2.63x) falls below the sum of the per-stratum Chao bounds (709
+against 721 exploited CVEs), so it is not identified. The middle stratum does
 not survive the strict check. Its 2.45x depends on VulnCheck's
 single-report entries, and under the strict list Chao's bound caps it at
 3.19x.
@@ -457,8 +462,12 @@ Under cross-validation any of the three maps restores calibration (predicted
 over observed 1.00-1.01x). Prospectively against KEV, each cuts calibration
 error 11-17x, but all under-predict by 28-39% a year later. Against the union
 of the primary lists, isotonic regression transfers exactly (1.00x; ECE 0.0137
-to 0.0046; Figure 5). Much of the KEV-target drift therefore reflects KEV's
-narrow and lagging coverage rather than the correction itself.
+to 0.0046; Figure 5), although that fit rests on only 111 positives. Much of
+the KEV-target drift therefore reflects KEV's narrow and lagging coverage
+rather than the correction itself. Transfer across birth cohorts is worse: a
+map fitted on CVEs first scored before 2025-06-01 under-predicts the younger
+ones at the same analysis date (isotonic 0.30x, Platt 0.52x against the
+union), and the age-aware Platt model overshoots (2.32x).
 
 The drift has a cause we can name. An old CVE reaches a given LEV through many
 windows of modest EPSS, and a new one through a few high scores. The second is
@@ -504,8 +513,8 @@ EPSS input and incomplete.
 **KEV coverage.** Empirical Security reports that KEV covers at most about 8.7%
 of CVEs with observed exploitation activity, from proprietary telemetry [18].
 Our figures come from open data on a younger population: KEV recorded at most
-32% of what our primary lists observed, at most 22% under Chao's bound, and
-about 33% under the strict pooled model. The direction agrees. The levels
+32% of what our primary lists observed, and at most 22% under Chao's bound.
+The direction agrees. The levels
 differ as they should, since four lists see less than one vendor's full
 telemetry.
 
@@ -536,8 +545,8 @@ the conclusions:
   configuration changes them.
 - **VulnCheck precision.** VulnCheck supplies most single-list captures, and
   65% of VulnCheck-only CVEs rest on one text report. The strict configuration
-  keeps the top-stratum and pooled results; the middle-stratum estimate does
-  not survive it.
+  keeps the top-stratum result; the middle-stratum estimate does not
+  survive it.
 - **Nested sources.** Two catalogues contain CISA KEV, and VulnCheck contains
   Shadowserver's list. Each was removed by source before modelling; a
   containment we did not detect would bias the estimates downward.
@@ -574,7 +583,7 @@ ThreatLens trains a ranking model on KEV entries as weak supervision [23]. Our
 results suggest caution with any of these: KEV is incomplete in a
 vendor-dependent way, and it is already an EPSS input. Shaffer and Voicu model
 exploitation hazard with a decay calibrated on KEV timing [24]; our cohorts
-show EPSS rising, not decaying, over 35 months.
+show EPSS rising, not decaying, over 34 months.
 
 **Multiple-systems estimation.** Capture-recapture over administrative lists is
 standard in epidemiology [12] and has been used to estimate casualties and
@@ -588,10 +597,11 @@ Evaluated against KEV, LEV looks badly over-confident. Much of that is not
 LEV's doing. EPSS retraining puts an artifact into the product LEV computes,
 LEV accumulates without the saturation its design assumes, and KEV records a
 minority of the exploitation that other sources observe. Once that is
-accounted for, LEV over-predicts true exploitation by about 2-2.6x wherever
+accounted for, LEV over-predicts true exploitation by about 2-2.5x wherever
 the estimate can be made, rather than the 8x that KEV suggests. A monotone
 correction brings LEV's values in line with the broader ground truth and
-transfers to CVEs it never saw.
+transfers a year ahead to CVEs it never saw, though it must be refitted as
+CVEs age.
 
 The lowest LEV stratum, which holds most CVEs, remains out of reach of four
 lists. Its single-list captures come almost entirely from one source, so a

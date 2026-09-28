@@ -307,8 +307,8 @@ Fixed cohorts, `dn` swept monthly 2023-10-01 to 2026-08-01.
 
 | cohort | n | mean LEV first -> last `dn` | shape (AIC) | within-regime shape | frac > 0.9 now -> 2028-01 |
 |---|---|---|---|---|---|
-| v3 (first EPSS 2023-03..09) | 13,685 | 0.0082 -> 0.1351 | linear (R2 0.952) | linear (R2 0.997) | 0.046 -> 0.070 |
-| v1/v2 (first EPSS 2021-05..09) | 7,558 | 0.3082 -> 0.4075 | linear (R2 0.960) | linear (R2 0.999) | 0.098 -> 0.126 |
+| v3 (first EPSS 2023-03..09) | 13,685 | 0.0082 -> 0.1351 | quadratic (R2 0.980) | quadratic (R2 0.9988) | 0.046 -> 0.096 |
+| v1/v2 (first EPSS 2021-05..09) | 7,558 | 0.3082 -> 0.4075 | quadratic (R2 0.993) | quadratic (R2 0.9995) | 0.098 -> 0.170 |
 
 No deceleration in either cohort; month-over-month increments grow. Cohort
 mean EPSS rises rather than decays. See threats 12-16.
@@ -386,7 +386,7 @@ At LEV >= 0.9, LEV averages 0.985; an estimated 48% [42%, 55%] were exploited.
 | lists | LEV [0.9, 1.0] | LEV [0.1, 0.9) | all LEV |
 |---|---|---|---|
 | CISA, SENSOR, VULNCHK (primary) | 2.04x [1.80, 2.32] | 2.45x [1.91, 3.07] | not identified |
-| CISA, SENSOR, strict VULNCHK | 2.12x [1.84, 2.42] | not identified | **2.63x [2.36, 2.93]** |
+| CISA, SENSOR, strict VULNCHK | 2.12x [1.84, 2.42] | not identified | not identified (2.63x below stratified Chao bound) |
 | CISA, SENSOR, SOCIAL | 2.07x [1.73, 2.43] | not identified | not claimed (0.98x) |
 | all four | 1.54x [0.70, 2.02] | not identified | not claimed (0.35x) |
 | CISA, SOCIAL, VULNCHK (no SENSOR) | not identified | not identified | not identified |
@@ -521,16 +521,17 @@ marked with an `ASSUMPTION` / `PROXY` comment at the point it is made.
    (`dn_sweep.py`). LEV is a product over 30-day windows and cannot decrease
    in `dn`, so growth is a property of the equation, not a finding. What is
    measured is the *shape*: on a fixed 13,685-CVE v3 cohort mean LEV runs
-   0.0082 -> 0.1351 over 35 months, and a linear fit beats log and saturating
-   on AIC (R2 = 0.9524). Month-over-month increments grow rather than shrink.
+   0.0082 -> 0.1351 over 34 months, and AIC selects a quadratic (accelerating)
+   fit over power, exponential, linear, saturating and log (R2 = 0.9795). Month-over-month increments grow rather than shrink.
    This uses no exploitation ground truth, so unlike the calibration gap it is
    not confounded by KEV incompleteness.
 13. **EPSS retrainings confound the sweep** (`dn_sweep.py`). The sweep spans
    two model changes — v2025.03.14 (first seen 2025-04-01) and v2026.06.15
-   (2026-07-01) — each of which raised scores corpus-wide; both cohorts kink
+   (2026-07-01) — each of which shifted scores corpus-wide (2025: corpus mean
+   x1.21; 2026: 84% of scores rose but the mean fell to x0.88); both cohorts kink
    at those dates. Refitting within the unbroken v2023.03.01 regime
-   (2023-10-01..2025-03-01) still selects linear (R2 = 0.9972 v3, 0.9989
-   v1/v2), so the conclusion survives, but the full-sweep *rate* mixes LEV
+   (2023-10-01..2025-03-01) still selects quadratic (R2 = 0.9988 v3, 0.9995
+   v1/v2; dAIC 12.8 and 4.4 over the runner-up), so the conclusion survives, but the full-sweep *rate* mixes LEV
    accumulation with score-level shifts that CSWP 41 does not model.
 14. **NIST's EPSS-decay assumption does not hold in this data**
    (`dn_sweep.py`). LEV growth is expected to stall because EPSS decays toward
@@ -786,8 +787,9 @@ marked with an `ASSUMPTION` / `PROXY` comment at the point it is made.
    With four lists, 84-99% of single-list captures are VulnCheck-only, and 65%
    of VulnCheck-only CVEs rest on one text report (median one report per CVE).
    The strict configuration (sensor-observed or >= 2 independent sources,
-   2,912 CVEs) keeps the top-stratum result (2.12x) and identifies the pooled
-   one (2.63x), but the middle stratum's 2.45x does not survive it.
+   2,912 CVEs) keeps the top-stratum result (2.12x). Its pooled estimate
+   (2.63x, N 709) falls below the sum of per-stratum Chao bounds (721), so it
+   is not identified, and the middle stratum's 2.45x does not survive it.
 53. **The four-list results need a VulnCheck token to reproduce**
    (`download_vulncheck.py`, `DATA_SNAPSHOT.md`). VulnCheck's terms are silent
    on redistribution, so the snapshot stays in gitignored `cache/` and its hash
