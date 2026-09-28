@@ -90,7 +90,9 @@ than assumed. <code>cisa_date_added</code> is the marker of contamination, not a
 <div class="tw"><table>
 <tr><td class="k">1</td><td>Drop <code>cisa_date_added</code> entirely.</td></tr>
 <tr><td class="k">2</td><td>Filter <code>vulncheck_reported_exploitation[]</code> to reports whose URL
- host is not <code>cisa.gov</code> / <code>www.cisa.gov</code>.</td></tr>
+ host is not <code>cisa.gov</code> <strong>and not <code>shadowserver.org</code></strong>. Found on first
+ use: Shadowserver's dashboard is VulnCheck&rsquo;s largest source, and all 969 Shadowserver honeypot
+ CVEs appear in it, so leaving it in makes VulnCheck contain the SENSOR list.</td></tr>
 <tr><td class="k">3</td><td>Keep a CVE only if a report survives step 2, <strong>or</strong>
  <code>reported_exploited_by_vulncheck_canaries == true</code>.</td></tr>
 <tr><td class="k">4</td><td>First-observation date = <code>min(date_added)</code> over surviving

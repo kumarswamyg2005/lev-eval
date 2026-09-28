@@ -63,6 +63,21 @@ RNG = np.random.default_rng(20260928)          # fixed: the CI is part of the re
 # for its own log-linear fit.
 STRATA = [(0.0, 0.1), (0.1, 0.9), (0.9, 1.0 + 1e-9)]
 
+# Which lists form the PRIMARY analysis.  Telegram/social sightings include
+# mass lists of CVEs actors merely CLAIM to use (threat 47, recorded before
+# VulnCheck was available), so when a fourth list exists the primary analysis
+# uses only lists whose entries each cite evidence.  Every other configuration
+# is still run and reported by list_set_grid().
+EVIDENCE_LISTS = ["CISA", "SENSOR", "VULNCHK"]
+FALLBACK_LISTS = ["CISA", "SENSOR", "SOCIAL"]
+LIST_SETS = {
+    "CISA+SENSOR+SOCIAL": ["CISA", "SENSOR", "SOCIAL"],
+    "CISA+SENSOR+VULNCHK (evidence-citing)": ["CISA", "SENSOR", "VULNCHK"],
+    "all four": ["CISA", "SENSOR", "SOCIAL", "VULNCHK"],
+    "CISA+SOCIAL+VULNCHK (no SENSOR)": ["CISA", "SOCIAL", "VULNCHK"],
+    "CISA+SENSOR+VULNCHK_STRICT (precision check)": ["CISA", "SENSOR", "VULNCHK_STRICT"],
+}
+
 
 # ------------------------------------------------------------------ lists
 def exploitation_lists(dn=DN):
@@ -79,6 +94,7 @@ def exploitation_lists(dn=DN):
     vc = download_vulncheck.load()
     if vc is not None:
         lists["VULNCHK"] = first(vc)
+        lists["VULNCHK_STRICT"] = first(vc[vc["strict"]])
     return {k: v[v <= dn] for k, v in lists.items()}
 
 
@@ -323,6 +339,40 @@ def truth_ladder(H, lev, label):
     return rungs
 
 
+def list_set_grid(H_all, lev):
+    """Over-confidence for every list configuration x LEV stratum.
+
+    Cells show union / Chao / log-linear; 'n.i.' = log-linear not identified.
+    This is the table that shows the conclusion does not hinge on one choice.
+    """
+    rows = []
+    strata = [("all LEV", np.ones(len(lev), bool))] + [
+        (f"[{lo:.1f}, {min(hi, 1):.1f})", ((lev >= lo) & (lev < hi)).to_numpy())
+        for lo, hi in STRATA]
+    for name, cols in LIST_SETS.items():
+        if not all(c in H_all.columns for c in cols):
+            continue
+        for sname, m in strata:
+            Hs, ls = H_all.loc[m, cols], lev[m]
+            n, ml = len(Hs), float(ls.mean())
+            union = int((Hs.sum(axis=1) > 0).sum())
+            chao, chao_ci, *_ = chao_lower_bound(Hs)
+            e = estimate(Hs, sname, verbose=False)
+            ll = (f"{ml / (e['N_hat'] / n):.2f}x [{ml / (e['ci'][1] / n):.2f}, "
+                  f"{ml / (e['ci'][0] / n):.2f}]") if e.get("identified") else "n.i."
+            rows.append({"lists": name, "stratum": sname, "n": n,
+                         "union": ml / (union / n), "chao": ml / (chao / n),
+                         "loglinear": ll})
+    g = pd.DataFrame(rows)
+    print(f"\n{'=' * 90}\nLIST-SET SENSITIVITY -- over-confidence (union / Chao / log-linear)\n{'=' * 90}")
+    for name, sub in g.groupby("lists", sort=False):
+        print(f"\n  {name}")
+        for _, r in sub.iterrows():
+            print(f"    {r['stratum']:<12} n={r['n']:>6,}  union {r['union']:5.2f}x   "
+                  f"Chao {r['chao']:5.2f}x   log-linear {r['loglinear']}")
+    return g
+
+
 def main():
     tidy = download_epss.load()
     print("\nbuilding matrices...")
@@ -342,8 +392,11 @@ def main():
     # recapture cannot do without.  Six-month maturity as in Phase 1.
     prim = nbf & (fd >= SENSOR_START) & (fd <= DN - CENSOR)
     pop = wide.index[prim]
-    H = histories(pop, lists)
+    H_all = histories(pop, lists)
     lev = levmod.lev(norm_wide[prim], first_idx[prim], dn=DN)
+    primary = EVIDENCE_LISTS if "VULNCHK" in H_all.columns else FALLBACK_LISTS
+    H = H_all[primary]
+    print(f"\nPRIMARY lists: {', '.join(primary)}")
 
     print(f"\n{'=' * 90}\nPRIMARY -- CVEs first scored {SENSOR_START.date()} .. "
           f"{(DN - CENSOR).date()} (N={len(pop):,})\n{'=' * 90}")
@@ -379,18 +432,15 @@ def main():
         strata_ladders[name] = truth_ladder(H[s], lev[s], name)
         strata_est[name] = estimate(H[s], name, verbose=False)
 
-    # ------------- circularity: SENSOR (Shadowserver) is an EPSS LABEL source
-    print(f"\n{'=' * 90}\nCIRCULARITY -- SENSOR excluded\n{'=' * 90}")
-    print("  Shadowserver is one of EPSS's four ground-truth label sources, so EPSS")
-    print("  is trained to predict roughly what SENSOR records.  Without it, the")
-    print("  ladder rests on CISA and SOCIAL only (two lists: log-linear not")
-    print("  identifiable, so only counting and Chao remain).")
-    no_sensor = truth_ladder(H.drop(columns=["SENSOR"]), lev, "ALL LEV, no SENSOR")
+    # ------------- every list configuration, including the circularity check
+    # (no SENSOR: Shadowserver is an EPSS label source) and the false-claim
+    # check (no SOCIAL), in one table.
+    grid = list_set_grid(H_all, lev)
 
     # ------------- sensitivity: full cohort, stratified by birth period
     print(f"\n{'=' * 90}\nSENSITIVITY -- full v3-era cohort, by birth period\n{'=' * 90}")
     full = calibration.cohort(wide, first_idx, DN)
-    Hf = histories(wide.index[full], lists)
+    Hf = histories(wide.index[full], lists)[primary]
     levf = levmod.lev(norm_wide[full], first_idx[full], dn=DN)
     born_in = (fd[full] >= SENSOR_START).to_numpy()
     sens = {"born before sensor window": truth_ladder(Hf[~born_in], levf[~born_in],
@@ -427,7 +477,7 @@ def main():
                         xytext=(8, 6), fontsize=7, color="#8a6212", style="italic")
     ax.set_xlabel("mean LEV in stratum (predicted)")
     ax.set_ylabel("exploitation rate under each notion of truth")
-    ax.set_title("LEV against progressively broader ground truth\n"
+    ax.set_title(f"LEV against progressively broader ground truth ({'+'.join(primary)})\n"
                  f"CVEs first scored {SENSOR_START.date()} .. {(DN - CENSOR).date()}, "
                  f"N={len(pop):,}")
     ax.grid(alpha=.3, which="both"); ax.legend(fontsize=7.5, loc="upper left")
@@ -443,7 +493,8 @@ def main():
         "captures": {c: int(H[c].sum()) for c in H},
         "overall_estimate": overall, "ladder": ladder,
         "strata": strata_ladders, "strata_estimates": strata_est,
-        "no_sensor": no_sensor, "sensitivity": sens}, indent=2, default=float))
+        "primary_lists": primary, "list_set_grid": grid.to_dict(orient="records"),
+        "sensitivity": sens}, indent=2, default=float))
     print(f"wrote {RESULTS}")
     return 0
 

@@ -7,70 +7,71 @@
   "lists": {
     "CISA": 1656,
     "SENSOR": 911,
-    "SOCIAL": 1957
+    "SOCIAL": 1957,
+    "VULNCHK": 4590,
+    "VULNCHK_STRICT": 2824
   },
   "captures": {
     "CISA": 236,
     "SENSOR": 147,
-    "SOCIAL": 449
+    "VULNCHK": 702
   },
   "overall_estimate": {
     "label": "ALL LEV, 3-list log-linear",
     "n": 54612,
-    "observed": 570,
-    "chao": 886.5558510638298,
+    "observed": 734,
+    "chao": 1093.727626459144,
     "chao_ci": [
-      810.1326355844308,
-      987.3010744618781
+      1015.0724876694101,
+      1194.3935671929971
     ],
-    "f1": 345,
-    "f2": 188,
-    "identified": true,
-    "reason": "",
-    "N_hat": 1895.999999999941,
+    "f1": 430,
+    "f2": 257,
+    "identified": false,
+    "reason": "N_hat 881 below Chao lower bound 1015 -- heterogeneity violates the model",
+    "N_hat": 881.2054794520566,
     "ci": [
-      1326.2795454545296,
-      3292.524999999841
+      793.0806312885468,
+      982.5302749867798
     ],
-    "N_avg": 1895.4814491366494,
+    "N_avg": 873.8847181103041,
     "model": [
       "CISAxSENSOR",
-      "CISAxSOCIAL"
+      "CISAxVULNCHK"
     ],
     "support_range": [
-      1895.999999999941,
-      1895.999999999941
+      866.0750000000002,
+      881.2054794520566
     ],
     "alt": [
       {
-        "N_hat": 1895.999999999941,
-        "aic": 53.31616059712654,
+        "N_hat": 881.2054794520566,
+        "aic": 49.568764434093126,
         "model": [
           "CISAxSENSOR",
-          "CISAxSOCIAL"
+          "CISAxVULNCHK"
         ]
       },
       {
-        "N_hat": 791.000000000007,
-        "aic": 68.79448178566412,
+        "N_hat": 866.0750000000002,
+        "aic": 49.70115359778598,
         "model": [
-          "CISAxSOCIAL",
-          "SENSORxSOCIAL"
+          "CISAxVULNCHK"
         ]
       },
       {
-        "N_hat": 1149.919354838708,
-        "aic": 73.10493744999111,
+        "N_hat": 744.7792207792191,
+        "aic": 68.89027845435821,
         "model": [
-          "CISAxSOCIAL"
+          "SENSORxVULNCHK"
         ]
       },
       {
-        "N_hat": 607.3251533742337,
-        "aic": 109.60405188069576,
+        "N_hat": 744.8152173913045,
+        "aic": 70.8833510708171,
         "model": [
           "CISAxSENSOR",
-          "SENSORxSOCIAL"
+          "SENSORxVULNCHK"
         ]
       }
     ]
@@ -95,8 +96,8 @@
     {
       "truth": "union of all lists",
       "assumption": "every listed sighting is real",
-      "exploited": 570,
-      "over": 3.27609082201453,
+      "exploited": 734,
+      "over": 2.544103226905017,
       "over_lo": null,
       "over_hi": null
     },
@@ -111,18 +112,18 @@
     {
       "truth": "Chao lower bound",
       "assumption": "closed population; robust to heterogeneity",
-      "exploited": 886.5558510638298,
-      "over": 2.1063216336652846,
-      "over_lo": 1.8913903943293904,
-      "over_hi": 2.305019803579642
+      "exploited": 1093.727626459144,
+      "over": 1.7073462563926904,
+      "over_lo": 1.5634476104362185,
+      "over_hi": 1.8396437606497813
     },
     {
       "truth": "log-linear (AIC-selected)",
-      "assumption": "+ no three-way interaction",
-      "exploited": 1895.999999999941,
-      "over": 0.9849007218081964,
-      "over_lo": 0.5871557405247881,
-      "over_hi": 1.381588282760116
+      "assumption": "NOT IDENTIFIED: N_hat 881 below Chao lower bound 1015 -- heterogeneity violates the model",
+      "exploited": null,
+      "over": null,
+      "over_lo": null,
+      "over_hi": null
     }
   ],
   "strata": {
@@ -146,8 +147,8 @@
       {
         "truth": "union of all lists",
         "assumption": "every listed sighting is real",
-        "exploited": 209,
-        "over": 2.9306029078337503,
+        "exploited": 260,
+        "over": 2.355753875912514,
         "over_lo": null,
         "over_hi": null
       },
@@ -162,14 +163,14 @@
       {
         "truth": "Chao lower bound",
         "assumption": "closed population; robust to heterogeneity",
-        "exploited": 922.0208333333334,
-        "over": 0.6642973624825039,
-        "over_lo": 0.44586784930222545,
-        "over_hi": 0.9488706928892361
+        "exploited": 742.6489361702128,
+        "over": 0.8247450146442701,
+        "over_lo": 0.625828884874763,
+        "over_hi": 1.0485631835422893
       },
       {
         "truth": "log-linear (AIC-selected)",
-        "assumption": "NOT IDENTIFIED: N_hat 242 below Chao lower bound 645 -- heterogeneity violates the model",
+        "assumption": "NOT IDENTIFIED: N_hat 260 below Chao lower bound 584 -- heterogeneity violates the model",
         "exploited": null,
         "over": null,
         "over_lo": null,
@@ -196,8 +197,8 @@
       {
         "truth": "union of all lists",
         "assumption": "every listed sighting is real",
-        "exploited": 137,
-        "over": 4.5887625179457,
+        "exploited": 197,
+        "over": 3.191169872886096,
         "over_lo": null,
         "over_hi": null
       },
@@ -212,18 +213,18 @@
       {
         "truth": "Chao lower bound",
         "assumption": "closed population; robust to heterogeneity",
-        "exploited": 184.34426229508196,
-        "over": 3.4102524110691164,
-        "over_lo": 2.841960278774078,
-        "over_hi": 3.8422264506486297
+        "exploited": 275.28915662650604,
+        "over": 2.283636859011797,
+        "over_lo": 1.9486683410962509,
+        "over_hi": 2.5576585998799337
       },
       {
         "truth": "log-linear (AIC-selected)",
-        "assumption": "NOT IDENTIFIED: models within 2 AIC span 143-2997",
-        "exploited": null,
-        "over": null,
-        "over_lo": null,
-        "over_hi": null
+        "assumption": "+ no three-way interaction",
+        "exploited": 256.4117647058832,
+        "over": 2.451761391212549,
+        "over_lo": 1.92034437537102,
+        "over_hi": 3.090342013041819
       }
     ],
     "LEV [0.9, 1.0)": [
@@ -246,8 +247,8 @@
       {
         "truth": "union of all lists",
         "assumption": "every listed sighting is real",
-        "exploited": 224,
-        "over": 2.795603999341373,
+        "exploited": 277,
+        "over": 2.2607050391785832,
         "over_lo": null,
         "over_hi": null
       },
@@ -262,18 +263,18 @@
       {
         "truth": "Chao lower bound",
         "assumption": "closed population; robust to heterogeneity",
-        "exploited": 258.252427184466,
-        "over": 2.424818626797149,
-        "over_lo": 2.2031067739846444,
-        "over_hi": 2.571987073232246
+        "exploited": 318.76771653543307,
+        "over": 1.9644878178335217,
+        "over_lo": 1.80620553071268,
+        "over_hi": 2.073364670181824
       },
       {
         "truth": "log-linear (AIC-selected)",
         "assumption": "+ no three-way interaction",
-        "exploited": 301.8688524590159,
-        "over": 2.0744614449332346,
-        "over_lo": 1.7464421341605298,
-        "over_hi": 2.45859972973513
+        "exploited": 306.317647058824,
+        "over": 2.0443330701486215,
+        "over_lo": 1.8056952642988948,
+        "over_hi": 2.363846540123666
       }
     ]
   },
@@ -281,115 +282,119 @@
     "LEV [0.0, 0.1)": {
       "label": "LEV [0.0, 0.1)",
       "n": 52019,
-      "observed": 209,
-      "chao": 922.0208333333334,
+      "observed": 260,
+      "chao": 742.6489361702128,
       "chao_ci": [
-        645.4999741558588,
-        1373.7164693435468
+        584.1288511275976,
+        978.6956507445684
       ],
-      "f1": 185,
-      "f2": 24,
+      "f1": 213,
+      "f2": 47,
       "identified": false,
-      "reason": "N_hat 242 below Chao lower bound 645 -- heterogeneity violates the model",
-      "N_hat": 242.12499999999895,
+      "reason": "N_hat 260 below Chao lower bound 584 -- heterogeneity violates the model",
+      "N_hat": 260.0,
       "ci": [
-        202.74999999999912,
-        298.51249999999953
+        230.0,
+        290.85
       ],
-      "N_avg": 242.75414294391436,
+      "N_avg": 278.2614183878641,
       "model": [
         "CISAxSENSOR",
-        "SENSORxSOCIAL"
+        "SENSORxVULNCHK"
       ],
       "support_range": [
-        242.12499999999895,
-        242.12499999999895
+        260.0,
+        295.00000000000375
       ],
       "alt": [
         {
-          "N_hat": 242.12499999999895,
-          "aic": 32.301644198593785,
+          "N_hat": 260.0,
+          "aic": 32.126050380693435,
           "model": [
             "CISAxSENSOR",
-            "SENSORxSOCIAL"
+            "SENSORxVULNCHK"
           ]
         },
         {
-          "N_hat": 246.4999999999987,
-          "aic": 35.86973973263164,
+          "N_hat": 295.00000000000375,
+          "aic": 32.12605038069345,
           "model": [
-            "SENSORxSOCIAL"
+            "CISAxSENSOR",
+            "CISAxVULNCHK"
           ]
         },
         {
-          "N_hat": 381.24999999999864,
-          "aic": 72.87414574941663,
+          "N_hat": 299.8333333333323,
+          "aic": 34.60513629168622,
           "model": [
-            "CISAxSENSOR"
+            "CISAxVULNCHK"
           ]
         },
         {
-          "N_hat": 394.86496711084135,
-          "aic": 74.23280181363614,
-          "model": []
+          "N_hat": 260.0,
+          "aic": 35.31910132577364,
+          "model": [
+            "SENSORxVULNCHK"
+          ]
         }
       ]
     },
     "LEV [0.1, 0.9)": {
       "label": "LEV [0.1, 0.9)",
       "n": 1957,
-      "observed": 137,
-      "chao": 184.34426229508196,
+      "observed": 197,
+      "chao": 275.28915662650604,
       "chao_ci": [
-        163.61879577723298,
-        221.20663320099004
+        245.795300822429,
+        322.6102932451291
       ],
-      "f1": 76,
-      "f2": 61,
-      "identified": false,
-      "reason": "models within 2 AIC span 143-2997",
-      "N_hat": 2997.000000000396,
+      "f1": 114,
+      "f2": 83,
+      "identified": true,
+      "reason": "",
+      "N_hat": 256.4117647058832,
       "ci": [
-        830.0562499999597,
-        4131.149999999483
+        208.81771390374317,
+        338.2562499999987
       ],
-      "N_avg": 1458.4210507049922,
+      "N_avg": 229.01582797577322,
       "model": [
-        "CISAxSOCIAL"
+        "CISAxSENSOR",
+        "CISAxVULNCHK"
       ],
       "support_range": [
-        143.15,
-        2997.000000000396
+        201.59090909090884,
+        256.4117647058832
       ],
       "alt": [
         {
-          "N_hat": 2997.000000000396,
-          "aic": 34.60519533781619,
-          "model": [
-            "CISAxSOCIAL"
-          ]
-        },
-        {
-          "N_hat": 1203.0000000000177,
-          "aic": 34.646509586859565,
+          "N_hat": 256.4117647058832,
+          "aic": 36.31456647959371,
           "model": [
             "CISAxSENSOR",
-            "CISAxSOCIAL"
+            "CISAxVULNCHK"
           ]
         },
         {
-          "N_hat": 143.15,
-          "aic": 34.64650958685962,
+          "N_hat": 201.59090909090884,
+          "aic": 36.31456647959387,
           "model": [
             "CISAxSENSOR",
-            "SENSORxSOCIAL"
+            "SENSORxVULNCHK"
           ]
         },
         {
-          "N_hat": 147.2,
-          "aic": 73.17177431414954,
+          "N_hat": 212.81927710843343,
+          "aic": 50.17836189181662,
           "model": [
-            "SENSORxSOCIAL"
+            "CISAxSENSOR"
+          ]
+        },
+        {
+          "N_hat": 296.99999999999676,
+          "aic": 50.950493614157324,
+          "model": [
+            "CISAxVULNCHK"
           ]
         }
       ]
@@ -397,96 +402,228 @@
     "LEV [0.9, 1.0)": {
       "label": "LEV [0.9, 1.0)",
       "n": 636,
-      "observed": 224,
-      "chao": 258.252427184466,
+      "observed": 277,
+      "chao": 318.76771653543307,
       "chao_ci": [
-        243.47528895839105,
-        284.2419183886692
+        302.0285359630207,
+        346.702125092807
       ],
-      "f1": 84,
-      "f2": 103,
+      "f1": 103,
+      "f2": 127,
       "identified": true,
       "reason": "",
-      "N_hat": 301.8688524590159,
+      "N_hat": 306.317647058824,
       "ci": [
-        256.92650355385484,
-        353.8512711864408
+        267.066427511133,
+        346.85332906530186
       ],
-      "N_avg": 292.47624112991224,
+      "N_avg": 307.16307149788656,
       "model": [
-        "CISAxSOCIAL"
+        "CISAxVULNCHK"
       ],
       "support_range": [
-        269.60000000000167,
-        316.2857142857125
+        306.317647058824,
+        309.052631578947
       ],
       "alt": [
         {
-          "N_hat": 301.8688524590159,
-          "aic": 47.34924842377572,
+          "N_hat": 306.317647058824,
+          "aic": 42.99055888229258,
           "model": [
-            "CISAxSOCIAL"
+            "CISAxVULNCHK"
           ]
         },
         {
-          "N_hat": 269.60000000000167,
-          "aic": 47.61326480962401,
-          "model": [
-            "CISAxSOCIAL",
-            "SENSORxSOCIAL"
-          ]
-        },
-        {
-          "N_hat": 316.2857142857125,
-          "aic": 48.95742005779175,
+          "N_hat": 309.052631578947,
+          "aic": 44.58878136117309,
           "model": [
             "CISAxSENSOR",
-            "CISAxSOCIAL"
+            "CISAxVULNCHK"
           ]
         },
         {
-          "N_hat": 229.16455696202533,
-          "aic": 75.41313051778508,
+          "N_hat": 279.04411764705856,
+          "aic": 61.26090023919856,
+          "model": [
+            "SENSORxVULNCHK"
+          ]
+        },
+        {
+          "N_hat": 278.9550561797753,
+          "aic": 63.018267681768705,
           "model": [
             "CISAxSENSOR",
-            "SENSORxSOCIAL"
+            "SENSORxVULNCHK"
           ]
         }
       ]
     }
   },
-  "no_sensor": [
+  "primary_lists": [
+    "CISA",
+    "SENSOR",
+    "VULNCHK"
+  ],
+  "list_set_grid": [
     {
-      "truth": "CISA KEV",
-      "assumption": "KEV is complete",
-      "exploited": 236,
-      "over": 7.9125922396113655,
-      "over_lo": null,
-      "over_hi": null
+      "lists": "CISA+SENSOR+SOCIAL",
+      "stratum": "all LEV",
+      "n": 54612,
+      "union": 3.27609082201453,
+      "chao": 2.1063216336652846,
+      "loglinear": "0.98x [0.61, 1.39]"
     },
     {
-      "truth": "union of all lists",
-      "assumption": "every listed sighting is real",
-      "exploited": 485,
-      "over": 3.8502510691717164,
-      "over_lo": null,
-      "over_hi": null
+      "lists": "CISA+SENSOR+SOCIAL",
+      "stratum": "[0.0, 0.1)",
+      "n": 52019,
+      "union": 2.9306029078337503,
+      "chao": 0.6642973624825039,
+      "loglinear": "n.i."
     },
     {
-      "truth": "Chao lower bound",
-      "assumption": "closed population; robust to heterogeneity",
-      "exploited": 688.0625,
-      "over": 2.713956607936463,
-      "over_lo": 2.4585477301696708,
-      "over_hi": 2.939849411082774
+      "lists": "CISA+SENSOR+SOCIAL",
+      "stratum": "[0.1, 0.9)",
+      "n": 1957,
+      "union": 4.5887625179457,
+      "chao": 3.4102524110691164,
+      "loglinear": "n.i."
     },
     {
-      "truth": "log-linear (AIC-selected)",
-      "assumption": "NOT IDENTIFIED: no model with residual df",
-      "exploited": null,
-      "over": null,
-      "over_lo": null,
-      "over_hi": null
+      "lists": "CISA+SENSOR+SOCIAL",
+      "stratum": "[0.9, 1.0)",
+      "n": 636,
+      "union": 2.795603999341373,
+      "chao": 2.424818626797149,
+      "loglinear": "2.07x [1.73, 2.43]"
+    },
+    {
+      "lists": "CISA+SENSOR+VULNCHK (evidence-citing)",
+      "stratum": "all LEV",
+      "n": 54612,
+      "union": 2.544103226905017,
+      "chao": 1.7073462563926904,
+      "loglinear": "n.i."
+    },
+    {
+      "lists": "CISA+SENSOR+VULNCHK (evidence-citing)",
+      "stratum": "[0.0, 0.1)",
+      "n": 52019,
+      "union": 2.355753875912514,
+      "chao": 0.8247450146442701,
+      "loglinear": "n.i."
+    },
+    {
+      "lists": "CISA+SENSOR+VULNCHK (evidence-citing)",
+      "stratum": "[0.1, 0.9)",
+      "n": 1957,
+      "union": 3.191169872886096,
+      "chao": 2.283636859011797,
+      "loglinear": "2.45x [1.91, 3.07]"
+    },
+    {
+      "lists": "CISA+SENSOR+VULNCHK (evidence-citing)",
+      "stratum": "[0.9, 1.0)",
+      "n": 636,
+      "union": 2.2607050391785832,
+      "chao": 1.9644878178335217,
+      "loglinear": "2.04x [1.80, 2.32]"
+    },
+    {
+      "lists": "all four",
+      "stratum": "all LEV",
+      "n": 54612,
+      "union": 2.04307633320381,
+      "chao": 0.9362556071106789,
+      "loglinear": "0.35x [0.09, 0.80]"
+    },
+    {
+      "lists": "all four",
+      "stratum": "[0.0, 0.1)",
+      "n": 52019,
+      "union": 1.5467070902455902,
+      "chao": 0.39485966247041054,
+      "loglinear": "n.i."
+    },
+    {
+      "lists": "all four",
+      "stratum": "[0.1, 0.9)",
+      "n": 1957,
+      "union": 2.7694293610509293,
+      "chao": 1.3209531292279302,
+      "loglinear": "n.i."
+    },
+    {
+      "lists": "all four",
+      "stratum": "[0.9, 1.0)",
+      "n": 636,
+      "union": 2.1519425974311597,
+      "chao": 1.7173835703056977,
+      "loglinear": "1.54x [0.70, 2.02]"
+    },
+    {
+      "lists": "CISA+SOCIAL+VULNCHK (no SENSOR)",
+      "stratum": "all LEV",
+      "n": 54612,
+      "union": 2.0981705264587442,
+      "chao": 0.7020141302423462,
+      "loglinear": "n.i."
+    },
+    {
+      "lists": "CISA+SOCIAL+VULNCHK (no SENSOR)",
+      "stratum": "[0.0, 0.1)",
+      "n": 52019,
+      "union": 1.55851401459861,
+      "chao": 0.24802968011400914,
+      "loglinear": "n.i."
+    },
+    {
+      "lists": "CISA+SOCIAL+VULNCHK (no SENSOR)",
+      "stratum": "[0.1, 0.9)",
+      "n": 1957,
+      "union": 2.8837636007273435,
+      "chao": 0.78314790637127,
+      "loglinear": "n.i."
+    },
+    {
+      "lists": "CISA+SOCIAL+VULNCHK (no SENSOR)",
+      "stratum": "[0.9, 1.0)",
+      "n": 636,
+      "union": 2.244499268288414,
+      "chao": 1.6014219537806993,
+      "loglinear": "n.i."
+    },
+    {
+      "lists": "CISA+SENSOR+VULNCHK_STRICT (precision check)",
+      "stratum": "all LEV",
+      "n": 54612,
+      "union": 3.203039054113692,
+      "chao": 2.4852260120367062,
+      "loglinear": "2.63x [2.36, 2.93]"
+    },
+    {
+      "lists": "CISA+SENSOR+VULNCHK_STRICT (precision check)",
+      "stratum": "[0.0, 0.1)",
+      "n": 52019,
+      "union": 3.8043230294239363,
+      "chao": 1.934869105821816,
+      "loglinear": "n.i."
+    },
+    {
+      "lists": "CISA+SENSOR+VULNCHK_STRICT (precision check)",
+      "stratum": "[0.1, 0.9)",
+      "n": 1957,
+      "union": 3.9291279059910056,
+      "chao": 3.189590281314317,
+      "loglinear": "n.i."
+    },
+    {
+      "lists": "CISA+SENSOR+VULNCHK_STRICT (precision check)",
+      "stratum": "[0.9, 1.0)",
+      "n": 636,
+      "union": 2.390134716994151,
+      "chao": 2.099891872189573,
+      "loglinear": "2.12x [1.84, 2.42]"
     }
   ],
   "sensitivity": {
@@ -510,8 +647,8 @@
       {
         "truth": "union of all lists",
         "assumption": "every listed sighting is real",
-        "exploited": 630,
-        "over": 6.937137711810236,
+        "exploited": 911,
+        "over": 4.797361974138802,
         "over_lo": null,
         "over_hi": null
       },
@@ -526,18 +663,18 @@
       {
         "truth": "Chao lower bound",
         "assumption": "closed population; robust to heterogeneity",
-        "exploited": 990.6530612244899,
-        "over": 4.411632012763833,
-        "over_lo": 3.971993319144244,
-        "over_hi": 4.820817092319087
+        "exploited": 1489.144642857143,
+        "over": 2.934836974637467,
+        "over_lo": 2.6824735258964885,
+        "over_hi": 3.1752961505545088
       },
       {
         "truth": "log-linear (AIC-selected)",
-        "assumption": "+ no three-way interaction",
-        "exploited": 1883.5652173912836,
-        "over": 2.320278967825387,
-        "over_lo": 1.6091768568398575,
-        "over_hi": 3.0405333495637747
+        "assumption": "NOT IDENTIFIED: N_hat 1309 below Chao lower bound 1376 -- heterogeneity violates the model",
+        "exploited": null,
+        "over": null,
+        "over_lo": null,
+        "over_hi": null
       }
     ],
     "born inside sensor window": [
@@ -560,8 +697,8 @@
       {
         "truth": "union of all lists",
         "assumption": "every listed sighting is real",
-        "exploited": 570,
-        "over": 3.27609082201453,
+        "exploited": 734,
+        "over": 2.544103226905017,
         "over_lo": null,
         "over_hi": null
       },
@@ -576,18 +713,18 @@
       {
         "truth": "Chao lower bound",
         "assumption": "closed population; robust to heterogeneity",
-        "exploited": 886.5558510638298,
-        "over": 2.1063216336652846,
-        "over_lo": 1.8913903943293904,
-        "over_hi": 2.305019803579642
+        "exploited": 1093.727626459144,
+        "over": 1.7073462563926904,
+        "over_lo": 1.5634476104362185,
+        "over_hi": 1.8396437606497813
       },
       {
         "truth": "log-linear (AIC-selected)",
-        "assumption": "+ no three-way interaction",
-        "exploited": 1895.999999999941,
-        "over": 0.9849007218081964,
-        "over_lo": 0.5931814843083716,
-        "over_hi": 1.362614917953483
+        "assumption": "NOT IDENTIFIED: N_hat 881 below Chao lower bound 1015 -- heterogeneity violates the model",
+        "exploited": null,
+        "over": null,
+        "over_lo": null,
+        "over_hi": null
       }
     ]
   }

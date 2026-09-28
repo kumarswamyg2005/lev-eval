@@ -20,13 +20,15 @@ retraining tripled cohort scores overnight; 26.9% of LEV's probability mass is
 this version artifact. LEV also grows without saturating as the analysis date
 advances, contrary to the white paper's premise that EPSS decays for old CVEs.
 To separate LEV's error from KEV's incompleteness we estimate, with
-capture-recapture methods over three exploitation lists, how much exploitation
-no list recorded. By counting alone, 30-58% of the over-prediction measured
-against KEV is catalogue incompleteness. Where the estimate is identified
-(LEV >= 0.9), LEV still over-predicts true exploitation by about 2x. A
-monotone correction fitted one year earlier cuts calibration error 11-17x on
-CVEs it never saw, but drifts, because the same LEV means different things at
-different CVE ages.
+capture-recapture methods over four exploitation lists, how much exploitation
+no list recorded. Two lists that appear independent of KEV turn out to contain
+all of it, and a third contains the whole of a fourth. Once those overlaps
+are removed, counting alone attributes about two-thirds of the KEV-measured
+over-prediction to catalogue incompleteness. Against model-based estimates of
+true exploitation, LEV over-predicts by about 2-2.6x wherever the estimate is
+identified. A monotone correction fitted one year earlier transfers exactly to
+unseen CVEs against the broader ground truth, but drifts against KEV, because
+the same LEV means different things at different CVE ages.
 
 # 1 Introduction
 
@@ -77,16 +79,17 @@ Our contributions:
 3. **No saturation.** For fixed cohorts LEV grows convexly with the analysis
    date and shows no sign of levelling off. Cohort EPSS rises rather than
    decays, contrary to the white paper's premise.
-4. **Catalogue incompleteness, estimated.** After auditing candidate lists (two
-   that appear independent of KEV contain all of it), we estimate true
-   exploitation with log-linear capture-recapture models and a ladder of
-   progressively stronger assumptions. Counting alone attributes 30-58% of the
-   KEV-measured gap to catalogue incompleteness. At LEV >= 0.9, LEV still
-   over-predicts estimated true exploitation about 2x.
+4. **Catalogue incompleteness, estimated.** We audit every candidate
+   exploitation list for dependence before use. Two that look independent of
+   KEV contain all of it, and VulnCheck's KEV contains the whole of the
+   Shadowserver honeypot list. With the dependence removed, counting alone
+   attributes about two-thirds of the KEV-measured gap to catalogue
+   incompleteness, and log-linear capture-recapture models put LEV's own
+   over-prediction at about 2-2.6x.
 5. **A validated correction.** We fit a monotone map from LEV to observed
-   exploitation and validate it prospectively. It cuts calibration error 11-17x
-   on unseen CVEs a year later but drifts, which exposes a further property of
-   LEV: its meaning depends on CVE age.
+   exploitation and validate it prospectively on CVEs it never saw. Against the
+   broader ground truth it transfers exactly; against KEV it drifts, which
+   exposes a further property of LEV: its meaning depends on CVE age.
 
 All data snapshots, hashes and code are released, and one command regenerates
 every number in this paper (Section 10).
@@ -137,10 +140,12 @@ the other 11 were never scored and cannot receive a LEV value.
 onward, for CVSS, CWE and vendor.
 
 **Exploitation lists for Phase 2.** The CIRCL Vulnerability-Lookup service
-publishes "exploited" sightings with the source of each [5]. We retrieved all
-68,191 on 2026-09-28 and classified each by its source (Section 4.6). We also
-retrieved ENISA's EU Vulnerability Database known-exploited dump, 1,740 entries
-that name their source catalogue [6].
+publishes "exploited" sightings with the source of each [5]; we retrieved all
+68,191 on 2026-09-28. VulnCheck's KEV [11] lists 5,371 records, each with the
+URL and date of every exploitation report behind it; we retrieved it with a
+community token on the same day. We also retrieved ENISA's EU Vulnerability
+Database known-exploited dump [6]. Section 4.6 describes how each became, or
+did not become, a list.
 
 **Analysis population.** Unless stated otherwise, LEV is computed at
 $d_n$ = 2026-08-01. The calibration cohort is the 105,250 CVEs first scored in
@@ -206,29 +211,46 @@ the listing cannot have influenced.
 ## 4.6 Capture-recapture
 
 **Lists.** An exploitation list is a set of CVEs a source records as exploited
-in the wild. We consider three:
+in the wild. We use four:
 
 - CISA: CISA KEV.
-- SENSOR: CIRCL sightings sourced from Shadowserver's honeypot feed (969 CVEs),
-  which detects attempted exploitation directly.
+- SENSOR: CIRCL sightings from Shadowserver's honeypot feed (969 CVEs), which
+  records attempted exploitation directly.
+- VULNCHK: VulnCheck's KEV rebuilt from its per-report evidence (4,815 CVEs).
 - SOCIAL: CIRCL sightings from Telegram and similar channels (2,396 CVEs).
 
-We audited every candidate for overlap with CISA KEV before use. CIRCL's
-aggregated KEV catalogue contains all 1,676 CISA KEV CVEs, and VulnCheck's KEV
-includes CISA KEV by its own documentation [11]; either used as a "second list"
-makes the overlap equal to CISA KEV by construction. We exclude the first and,
-lacking an API token, could not rebuild the second from its per-report sources.
-EU KEV lists 66 CVEs; 55 are also on CISA KEV, and 88% of those carry CISA's
-own date, so we treat it as derivative. Exploit-DB records exploit
-availability rather than exploitation and is excluded as a list.
+We audited every candidate for dependence before use, because a list that
+contains another makes their overlap equal to the smaller one by construction.
+Three such cases turned up. CIRCL's aggregated KEV catalogue contains all 1,676
+CISA KEV CVEs; we exclude it. VulnCheck's KEV includes CISA KEV by its own
+documentation, so we rebuild it from its reports and drop every report hosted
+on cisa.gov. The third was less obvious. VulnCheck's largest single source is
+Shadowserver's dashboard (401,967 reports), and every one of the 969 SENSOR
+CVEs appears in VulnCheck's Shadowserver subset, so we drop those reports too.
+What remains is VulnCheck's own honeypot canaries, SANS DShield, CrowdSec,
+vendor advisories and threat reports. For 78% of CISA-listed CVEs the earliest
+remaining report predates CISA's listing (median 24 days), so the remainder is
+not an echo of CISA.
+
+EU KEV lists 66 CVEs; 55 are also on CISA KEV and 88% of those carry CISA's own
+date, so we treat it as derivative. ENISA's exploited-flag search returns the
+same consolidated set. Exploit-DB records exploit availability, not
+exploitation, and is excluded.
+
+**Primary lists.** Telegram channels carry mass lists of CVEs that actors claim
+to use. Before VulnCheck was available we had already excluded the lowest LEV
+stratum for this reason, since its single-list captures were 86% Telegram-only.
+With four lists we therefore take CISA, SENSOR and VULNCHK, the three whose
+entries each cite evidence, as primary, and report every other configuration
+alongside.
 
 **Population.** SENSOR begins on 2024-10-24. We restrict to the 54,612 CVEs
 first scored between 2024-10-24 and 2026-01-30, so every list could observe
-every CVE from its first score, and apply the six-month maturity rule. 570 of
-these appear on at least one list.
+every CVE from its first score, and apply the six-month maturity rule. 734 of
+these appear on at least one of the primary lists.
 
-**Models.** Two-list estimates disagree by 2.4x (530 to 1,256), so the lists
-are not independent and dependence has to be modelled. We fit Poisson
+**Models.** Two-list estimates among all four lists disagree by 2.4x (530 to
+1,256), so the lists are not independent and dependence has to be modelled. We fit Poisson
 log-linear models to the seven observable capture patterns under every
 hierarchical structure of two-way interactions, assume no three-way
 interaction (the standard identifying assumption [12, 13]), select by AIC, and
@@ -244,9 +266,8 @@ if it falls below the lower end of Chao's interval.
 
 **The truth ladder.** Rather than one estimate, we report LEV's over-confidence
 (mean LEV over the exploitation rate) against successively stronger notions of
-truth, each adding one assumption: KEV alone; KEV or SENSOR; the union of all
-three lists; the two-list Chapman estimate; Chao's bound; the log-linear
-estimate. Every rung is a lower bound on, or an estimate of, the number
+truth, each adding one assumption: KEV alone; KEV or SENSOR; the union of the
+primary lists; Chao's bound; the log-linear estimate. Every rung is a lower bound on, or an estimate of, the number
 exploited, so every over-confidence figure is an upper bound on LEV's error. A
 reader can stop at whichever assumption they accept.
 
@@ -255,7 +276,7 @@ reader can stop at whichever assumption they accept.
 We fit a monotone map from LEV to observed exploitation by isotonic regression
 [16] and by Platt scaling [17], and a Platt variant that also takes log CVE age.
 There are two targets: KEV on the calibration cohort, and the union of the
-three lists on the Phase 2 population. All scores are on held-out CVEs, under
+primary lists on the Phase 2 population. All scores are on held-out CVEs, under
 three schemes. Five-fold cross-validation is the in-distribution case. A split
 by first-score date trains on older CVEs and tests on newer ones. The deciding
 scheme is prospective: the map is fitted at $d_n$ = 2025-08-01 with outcomes
@@ -308,7 +329,7 @@ measurement series. When post-retraining scores are mapped back to the v3
 scale (Section 4.3), mean LEV drops by 26.9%, and over-prediction against KEV falls
 from 17.2x to 12.6x (Brier 0.0288, ECE 0.0546). Version mixing accounts for
 part of the gap but leaves most of it. Normalization also moves three of the
-four Table 5 values toward the published figures at $d_n$ = 2026-08-01
+four CSWP 41 Table 5 values toward the published figures at $d_n$ = 2026-08-01
 (mean absolute deviation 102% to 63%), without ever seeing them; the fourth,
 which spans pre-v3 models, moves away.
 
@@ -349,59 +370,76 @@ concentration in Section 5.2 is partly circular.
 
 ## 5.6 How much of the gap is the catalogue's
 
-Table 2 gives the truth ladder on the 54,612-CVE Phase 2 population, where KEV
-alone gives 7.91x.
+Table 2 gives the truth ladder on the 54,612-CVE Phase 2 population with the
+three primary lists. Against KEV alone, LEV over-predicts by 7.91x.
 
 | truth | assumption added | exploited | over-confidence |
 |---|---|---|---|
 | CISA KEV | KEV is complete | 236 | 7.91x |
 | CISA or SENSOR | honeypot sightings are real | 336 | 5.56x |
-| union of three lists | every sighting is real | 570 | 3.28x |
-| Chapman (CISA, SENSOR) | these two lists independent | 730 | 2.56x |
-| Chao lower bound | closed population | 887 | 2.11x [1.89, 2.31] |
-| log-linear, AIC-selected | no three-way interaction | 1,896 | 0.98x [0.59, 1.38] |
+| union of primary lists | every listed report is real | 734 | 2.54x |
+| Chao lower bound | closed population | 1,094 | 1.71x [1.56, 1.84] |
+| log-linear | no three-way interaction | not identified | |
 
-Table 2: LEV over-confidence against successively stronger notions of truth.
-Intervals are 95%.
+Table 2: LEV over-confidence against successively stronger notions of truth,
+all LEV strata pooled. Intervals are 95%.
 
-If only KEV and honeypot sightings are trusted, over-prediction falls from
-7.91x to 5.56x. If all three lists are trusted, it falls to 3.28x. So by counting alone, with
-no model, 30-58% of the gap measured against KEV is catalogue incompleteness;
-under Chao's bound it is at least 73%. Equivalently, KEV recorded at most 41%
-of the exploited CVEs that any list observed in this population, and at most
-27% under Chao's bound.
+By counting alone, over-prediction falls from 7.91x to 2.54x, so about
+two-thirds (68%) of the gap measured against KEV is catalogue incompleteness.
+KEV recorded at most a third (32%) of the exploited CVEs that any primary list
+observed, and at most 22% under Chao's bound. The pooled log-linear estimate
+falls below Chao's bound and is not reported. Table 3 stratifies by LEV.
 
-We report but do not claim the bottom rung. It pools strata that the
-stratified analysis rejects as heterogeneous, and the lowest stratum is
-dominated by sightings we cannot vouch for. Table 3 and Figure 4 stratify by LEV.
+| LEV | N | vs KEV | union | Chao | log-linear |
+|---|---|---|---|---|---|
+| [0.0, 0.1) | 52,019 | 21.1x | 2.36x | 0.82x | not identified |
+| [0.1, 0.9) | 1,957 | 9.11x | 3.19x | 2.28x | 2.45x [1.91, 3.07] |
+| [0.9, 1.0] | 636 | 4.54x | 2.26x | 1.96x | 2.04x [1.80, 2.32] |
 
-| LEV | N | union | Chao | log-linear |
-|---|---|---|---|---|
-| [0.0, 0.1) | 52,019 | 2.93x | 0.66x | not identified: below Chao's bound |
-| [0.1, 0.9) | 1,957 | 4.59x | 3.41x | not identified: models span 143 to 2,997 |
-| [0.9, 1.0] | 636 | 2.80x | 2.42x | 2.07x [1.75, 2.46] |
+Table 3: Over-confidence by LEV stratum, primary lists.
 
-Table 3: Over-confidence by LEV stratum.
+In the two upper strata, which together carry about two-thirds of LEV's
+probability mass, LEV over-predicts estimated true exploitation by about 2x
+and 2.5x. At the top, LEV averages 0.985 and we estimate 48% [42%, 55%] of
+those CVEs were exploited. The lowest stratum holds 95% of the CVEs and is not
+identified: the model estimate falls below Chao's bound there.
 
-Only the top stratum supports an estimate. There LEV averages 0.985, and we
-estimate 47% [40%, 56%] of those CVEs were exploited. Every rung above
-counting agrees on 2.1-2.4x. The middle stratum's best models tie on AIC while
-implying anywhere from 143 to 2,997 exploited CVEs, more than the stratum
-holds, and three lists cannot choose between them. In the lowest stratum 86% of
-the CVEs seen by exactly one list were seen only on Telegram, where actors also
-post mass lists of CVEs they claim to use; the model estimate falls below
-Chao's bound there, and we do not report it.
+**Does this hinge on the choice of lists?** Table 4 repeats the estimate under
+every configuration.
 
-Two checks. Shadowserver is one of EPSS's label sources, so EPSS is trained to
-predict roughly what SENSOR records. Without SENSOR, over-confidence is 3.85x
-against the union and 2.71x against Chao's bound: LEV looks somewhat worse
-without the list it was trained toward, as expected, and the conclusion
-holds. Second, the listing boost of Section 5.5 lifts some KEV members into the
-top stratum. Those CVEs are true positives, so without the boost the top
-stratum's exploited share would likely be lower, and the 2x figure is probably
-conservative.
+| lists | LEV [0.9, 1.0] | LEV [0.1, 0.9) | all LEV |
+|---|---|---|---|
+| CISA, SENSOR, VULNCHK (primary) | 2.04x [1.80, 2.32] | 2.45x [1.91, 3.07] | not identified |
+| CISA, SENSOR, strict VULNCHK | 2.12x [1.84, 2.42] | not identified | 2.63x [2.36, 2.93] |
+| CISA, SENSOR, SOCIAL | 2.07x [1.73, 2.43] | not identified | not claimed (0.98x) |
+| all four | 1.54x [0.70, 2.02] | not identified | not claimed (0.35x) |
+| CISA, SOCIAL, VULNCHK (no SENSOR) | not identified | not identified | not identified |
 
-![Figure 4. LEV against progressively broader ground truth, by LEV stratum.](../figures/capture_recapture.png)
+Table 4: Log-linear over-confidence by list configuration. "Not claimed":
+identified by our rules but pooled over strata the stratified analysis rejects.
+
+The top-stratum estimate is about 2x in every configuration built from
+evidence-citing lists, and also in the original three-list set. It drops to
+1.54x, with an interval that includes calibration, only when Telegram
+sightings enter a four-list model. The strict configuration keeps a VulnCheck
+CVE only if a sensor saw it or at least two independent sources reported it
+(2,912 CVEs). It matters because VulnCheck now supplies 84-99% of the CVEs seen
+by a single list, and 65% of the VulnCheck-only CVEs rest on one text report.
+Under the strict list the top stratum still gives 2.12x, and the pooled
+estimate becomes identified at 2.63x [2.36, 2.93]. The middle stratum does
+not survive the strict check. Its 2.45x depends on VulnCheck's
+single-report entries, and under the strict list Chao's bound caps it at
+3.19x.
+
+Two further checks. Shadowserver is one of EPSS's label sources, so EPSS is
+trained to predict roughly what SENSOR records. Without SENSOR nothing is
+identified, but counting still gives 2.10x pooled and 2.24x at the top, in
+line with the primary result. And the listing boost of Section 5.5 lifts some
+KEV members into the top stratum. They are true positives, so without the
+boost the top stratum's exploited share would likely be lower, and the 2x
+figure is probably conservative.
+
+![Figure 4. LEV against progressively broader ground truth, by LEV stratum, primary lists.](../figures/capture_recapture.png)
 
 ## 5.7 A correction curve, and why it drifts
 
@@ -412,14 +450,15 @@ conservative.
 | Platt | 0.0037 | 0.0015 | 0.66x |
 | Platt with CVE age | 0.0036 | 0.0014 | 0.72x |
 
-Table 4: Prospective validation against KEV. Fitted at 2025-08-01; scored at
+Table 5: Prospective validation against KEV. Fitted at 2025-08-01; scored at
 2026-08-01 on 44,316 CVEs the fit never saw.
 
 Under cross-validation any of the three maps restores calibration (predicted
-over observed 1.00-1.01x). Prospectively, each cuts calibration error 11-17x,
-but all under-predict by 28-39% a year later. Against the union target,
-isotonic regression transfers almost exactly (0.95x; ECE 0.0163 to 0.0021;
-Figure 5).
+over observed 1.00-1.01x). Prospectively against KEV, each cuts calibration
+error 11-17x, but all under-predict by 28-39% a year later. Against the union
+of the primary lists, isotonic regression transfers exactly (1.00x; ECE 0.0137
+to 0.0046; Figure 5). Much of the KEV-target drift therefore reflects KEV's
+narrow and lagging coverage rather than the correction itself.
 
 The drift has a cause we can name. An old CVE reaches a given LEV through many
 windows of modest EPSS, and a new one through a few high scores. The second is
@@ -428,15 +467,15 @@ different ages. A Platt model that also takes log age recovers about a
 quarter of the drift. This is the non-saturation of Section 5.4 seen from another side:
 LEV's scale depends on how long it has been accumulating.
 
-| LEV | corrected to KEV | corrected to union of lists |
+| LEV | corrected to KEV | corrected to union of primary lists |
 |---|---|---|
-| 0.10 | 0.8% | 4.9% |
-| 0.50 | 2.7% | 9.2% |
-| 0.90 | 6.8% | 12.8% |
-| 0.99 | 8.2% | 24.2% |
-| 1.00 | 27.8% | 66.7% |
+| 0.10 | 0.8% | 6.1% |
+| 0.50 | 2.7% | 15.4% |
+| 0.90 | 6.8% | 21.4% |
+| 0.99 | 8.2% | 32.7% |
+| 1.00 | 27.8% | 76.3% |
 
-Table 5: The isotonic correction, fitted on all data. Both targets are
+Table 6: The isotonic correction, fitted on all data. Both targets are
 catalogue appearance and so are lower bounds on true exploitation.
 
 ![Figure 5. Left: the correction curves. Right: held-out predicted/observed under each validation scheme.](../figures/recalibration.png)
@@ -446,7 +485,7 @@ catalogue appearance and so are lower bounds on true exploitation.
 **What LEV is good for.** LEV ranks. Its extremes separate: the top bucket's
 KEV rate is nearly 500 times the bottom bucket's. Its values should not be
 read as probabilities. A LEV of 0.9 corresponds to about 7% chance of KEV
-listing and about 13% chance of appearing on any of our three lists.
+listing and about 21% chance of appearing on any of our primary lists.
 
 **What LEV is not good for yet.** The white paper proposes LEV for finding
 exploited CVEs that KEV misses. Our results cut both ways on that. LEV's
@@ -464,34 +503,51 @@ EPSS input and incomplete.
 
 **KEV coverage.** Empirical Security reports that KEV covers at most about 8.7%
 of CVEs with observed exploitation activity, from proprietary telemetry [18].
-Our bounds are upper bounds on coverage, from open data, on a younger
-population: at most 41% by counting, at most 27% under Chao's bound, and 12%
-[7%, 18%] from the pooled model we do not claim. The directions agree. The
-levels differ as they should, since our lists are fewer and narrower than one
-vendor's full telemetry.
+Our figures come from open data on a younger population: KEV recorded at most
+32% of what our primary lists observed, at most 22% under Chao's bound, and
+about 33% under the strict pooled model. The direction agrees. The levels
+differ as they should, since four lists see less than one vendor's full
+telemetry.
+
+**Two definitions of "exploited."** Part of the KEV gap is definitional. EPSS
+is trained on intrusion-detection and honeypot detections, so LEV estimates
+the probability of observed exploitation *activity*. KEV lists confirmed,
+actionable exploitation. Against sources closer to EPSS's own definition, LEV
+looks roughly twice too confident rather than eight times.
 
 # 7 Threats to validity
 
-We record 51 threats in the released repository. The ones that bear most on
+We record 54 threats in the released repository. The ones that bear most on
 the conclusions:
 
 - **Monthly sampling.** LEV's windows are 30 days and our snapshots are about
   30.4 days apart. On 479 CVEs stratified by LEV decile, LEV from true daily
   windows differs from ours by 3.9% of mean LEV (population-weighted), with no
   consistent sign. The check covers the calibration cohort, not the older CVEs
-  behind the Table 5 rows.
+  behind the CSWP 41 Table 5 rows.
 - **Publication-date proxy.** We use first EPSS appearance as publication date,
-  with a backfill filter. Without the filter, Table 5's "all CVEs" row misses by
+  with a backfill filter. Without the filter, CSWP 41 Table 5's "all CVEs" row misses by
   75%.
 - **Circularity.** KEV is an EPSS input (Section 5.5), and Shadowserver is an
   EPSS label source. We measure the first and drop the second as a check; we
   cannot remove either from EPSS.
-- **List dependence.** The log-linear model assumes no three-way interaction,
-  which three lists cannot test. We report estimates only where identified.
+- **List dependence.** The log-linear model assumes no three-way interaction.
+  We report estimates only where identified, and Table 4 shows how each
+  configuration changes them.
+- **VulnCheck precision.** VulnCheck supplies most single-list captures, and
+  65% of VulnCheck-only CVEs rest on one text report. The strict configuration
+  keeps the top-stratum and pooled results; the middle-stratum estimate does
+  not survive it.
+- **Nested sources.** Two catalogues contain CISA KEV, and VulnCheck contains
+  Shadowserver's list. Each was removed by source before modelling; a
+  containment we did not detect would bias the estimates downward.
 - **False sightings.** Telegram sightings include claims we cannot verify. Every
   headline figure is also given with that list excluded.
 - **A short, young population.** SENSOR starts in October 2024, so Phase 2
   covers CVEs first scored over 15 months, each observed for 6-21 months.
+- **VulnCheck redistribution.** VulnCheck's terms do not say whether its data
+  may be redistributed, so the snapshot is not in the released repository;
+  reproducing the four-list results needs a free community token.
 - **Normalization.** Percentile mapping removes corpus-wide shift and cannot
   separate it from genuine improvement in the newer model.
 - **KEV dates.** `dateAdded` is a cataloguing date. Timing comparisons are
@@ -531,15 +587,16 @@ exploitation.
 Evaluated against KEV, LEV looks badly over-confident. Much of that is not
 LEV's doing. EPSS retraining puts an artifact into the product LEV computes,
 LEV accumulates without the saturation its design assumes, and KEV records a
-minority of the exploitation that other lists observe. Where exploitation can
-be estimated, at the top of LEV's scale, LEV still over-predicts about twofold.
-A monotone correction brings its values much closer to observed rates, but has
-to be refitted as CVEs age.
+minority of the exploitation that other sources observe. Once that is
+accounted for, LEV over-predicts true exploitation by about 2-2.6x wherever
+the estimate can be made, rather than the 8x that KEV suggests. A monotone
+correction brings LEV's values in line with the broader ground truth and
+transfers to CVEs it never saw.
 
-A fourth independent list would identify the middle of LEV's scale, where
-three lists cannot. VulnCheck's KEV, rebuilt without CISA-sourced evidence, is
-the natural candidate; the released code includes it once an access token is
-supplied.
+The lowest LEV stratum, which holds most CVEs, remains out of reach of four
+lists. Its single-list captures come almost entirely from one source, so a
+fifth independent list with sensor coverage, such as GreyNoise's, is the
+natural next step.
 
 # 10 Data and code availability
 

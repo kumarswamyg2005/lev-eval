@@ -49,6 +49,16 @@ population.
 model — a CVE with a public PoC is more likely to be captured by *every* list,
 which is exactly the dependence that has to be modelled.
 
+## Used in Phase 2 (2026-09-28)
+
+VulnCheck KEV was retrieved with a community token and rebuilt as a fourth
+list. Beyond the CISA containment above, the audit found a second one:
+**VulnCheck's largest source is Shadowserver's dashboard (401,967 reports), and
+all 969 CIRCL SENSOR CVEs appear in VulnCheck's Shadowserver subset.** The
+rebuilt list therefore drops Shadowserver-hosted reports as well as CISA's:
+4,815 CVEs remain (2,912 under a strict sensor-or-two-sources rule). Results
+are in README "Phase 2 results".
+
 ## Third correction: circularity with EPSS itself
 
 EPSS's exploitation labels come from **Fortinet, AlienVault, Shadowserver and

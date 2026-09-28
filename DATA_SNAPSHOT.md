@@ -136,11 +136,25 @@ Each sighting is classified by its `source` field (`data/download_circl.py`):
 **Not used as a list:** 88% of EU KEV's CISA overlap carries CISA's own
 `dateAdded`, so it is derivative rather than independent.
 
-### VulnCheck KEV — not yet retrieved
+### VulnCheck KEV — community backup
 
-Loader written (`data/download_vulncheck.py`), **untested** — it needs a free
-community token (`VULNCHECK_API_TOKEN`). When present, `capture_recapture.py`
-adds it automatically as a fourth list, rebuilt without CISA-sourced evidence.
+| field | value |
+|---|---|
+| endpoint | `https://api.vulncheck.com/v3/backup/vulncheck-kev` (free community token) |
+| retrieved | 2026-09-28 (latest record `_timestamp` 2026-09-28T17:20:27) |
+| records | 5,371 |
+| cached file | `cache/vulncheck_kev.json` (82 MB) — **not committed** |
+| SHA256 | `7163d33d4c4698591535af62b6b08b6784e9df0d2614f9fe9fdb33578402f811` |
+
+**Not in the repository:** VulnCheck's attribution notice is silent on
+redistribution, so the raw backup stays in gitignored `cache/`; only its hash
+is recorded. Reproducing the four-list results needs a free community token
+(`VULNCHECK_API_TOKEN`); without one the pipeline falls back to three lists.
+
+Rebuilt as list VULNCHK by dropping every report hosted on cisa.gov **and** on
+shadowserver.org (all 969 SENSOR CVEs appear in VulnCheck's Shadowserver
+subset): 4,815 CVEs. A strict variant — sensor-observed or at least two
+independent sources — has 2,912.
 
 ## Environment
 

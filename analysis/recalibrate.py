@@ -12,8 +12,10 @@ Two estimators:
 
 Two targets, because the answer depends on what "exploited" means:
   KEV   -- CISA KEV only, full v3-era calibration cohort (105,250 CVEs)
-  UNION -- CISA KEV, Shadowserver honeypots or Telegram/social, on CVEs born
-           inside the sensor window so every list could see them (54,612)
+  UNION -- any of the primary capture-recapture lists (CISA KEV, Shadowserver
+           honeypots, VulnCheck rebuilt CISA-free; Telegram/social only if
+           VulnCheck is unavailable), on CVEs born inside the sensor window so
+           every list could see them (54,612)
 Both targets are catalogue appearance, so both corrected probabilities are
 LOWER bounds on true exploitation.  analysis/capture_recapture.py is what
 estimates the truth; this gives the usable correction.
@@ -246,12 +248,15 @@ def main():
     born_ok = nbf & (fd >= cr.SENSOR_START)
     m2 = born_ok & (fd <= DN - cr.CENSOR)
     x2 = lev_at(m2, DN)
-    y2 = (cr.histories(x2.index, lists).sum(axis=1) > 0).astype(float).to_numpy()
+    # union over the same lists as the primary capture-recapture analysis
+    use = cr.EVIDENCE_LISTS if "VULNCHK" in lists else cr.FALLBACK_LISTS
+    print(f"union target lists: {', '.join(use)}")
+    y2 = (cr.histories(x2.index, lists)[use].sum(axis=1) > 0).astype(float).to_numpy()
     tr2 = born_ok & (fd <= DN_TR - cr.CENSOR)
     xp2 = lev_at(tr2, DN_TR)
-    yp2 = (cr.histories(xp2.index, lists_tr).sum(axis=1) > 0).astype(float).to_numpy()
+    yp2 = (cr.histories(xp2.index, lists_tr)[use].sum(axis=1) > 0).astype(float).to_numpy()
     test2 = ~x2.index.isin(xp2.index)
-    r2, iso2, pl2 = run("UNION of CISA + SENSOR + SOCIAL", x2.to_numpy(), y2,
+    r2, iso2, pl2 = run("UNION of " + " + ".join(use), x2.to_numpy(), y2,
                         age(x2.index, DN), fd[m2].to_numpy(), pd.Timestamp("2025-06-01"),
                         (xp2.to_numpy(), yp2, age(xp2.index, DN_TR), test2))
 

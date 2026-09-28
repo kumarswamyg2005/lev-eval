@@ -50,7 +50,7 @@ Every script is standalone and everything downloaded is cached under `cache/`
 | Phase 1 follow-ups (B-F, drift, normalization, sampling) | `analysis/*.py` | done |
 | Circularity (KEV as EPSS feature) | `analysis/leakage.py` | done — earlier figure withdrawn, see threat 41 |
 | Second exploitation lists | `data/download_circl.py`, `download_euvd.py` | done — audited |
-| VulnCheck KEV, CISA-free | `data/download_vulncheck.py` | **written, untested — needs a free token** |
+| VulnCheck KEV, rebuilt without CISA and Shadowserver | `data/download_vulncheck.py` | done — tested 2026-09-28 |
 | Capture–recapture | `analysis/capture_recapture.py` | done |
 | Correction curve, prospective validation | `analysis/recalibrate.py` | done |
 | Paper draft | `paper/draft.md` -> `paper/draft.pdf` (`bash paper/build.sh`) | **first draft** |
@@ -334,6 +334,13 @@ that look independent are not:
 | EU KEV (ENISA) | 66 | 55, 88% carrying CISA's own date | derivative — excluded |
 | **Shadowserver honeypots** (via CIRCL) | 969 | 286 (29.5%) | **used: SENSOR** |
 | **Telegram / social** (via CIRCL) | 2,396 | 1,128 (47.1%) | **used: SOCIAL** — 58% seen *before* CISA |
+| **VulnCheck KEV, rebuilt** | 4,815 | CISA + Shadowserver reports dropped | **used: VULNCHK** — 78% of CISA overlap reported *before* CISA |
+
+VulnCheck needed a second exclusion that only the audit revealed: its largest
+source is Shadowserver's dashboard (401,967 reports), and **all 969 SENSOR CVEs
+appear in VulnCheck's Shadowserver subset**. Left in, VULNCHK would contain
+SENSOR — the CISA trap one list over. What remains is VulnCheck's own
+canaries, SANS DShield, CrowdSec, vendor advisories and threat reports.
 
 Using either superset as a "second list" makes capture–recapture return a
 confident, meaningless number: the overlap equals CISA KEV by construction.
@@ -341,61 +348,64 @@ confident, meaningless number: the overlap equals CISA KEV by construction.
 ### Capture–recapture (`capture_recapture.py`)
 
 Population: the 54,612 CVEs first scored 2024-10-24 .. 2026-01-30, so every
-list could observe every CVE from birth. 570 captured by at least one list.
+list could observe every CVE from birth.
 
-Pairwise estimates disagree by 2.4x (530 to 1,256), so the lists are dependent
-and the dependence is modelled: log-linear models over every hierarchical
-two-way interaction structure, selected by AIC, parametric bootstrap CI, with
-Chao's heterogeneity-robust lower bound as a consistency check.
+**Primary lists: CISA, SENSOR, VULNCHK** — the three whose entries each cite
+evidence. Telegram sightings include mass claims (threat 47, recorded before
+VulnCheck was available), so SOCIAL is reported as a sensitivity, not used as
+primary. Log-linear models over every hierarchical two-way interaction
+structure, AIC selection, bootstrap CI, Chao's lower bound as a consistency
+check; an estimate is reported only where identified.
 
-**The truth ladder** — LEV's over-confidence against progressively stronger
-notions of truth. Each rung adds one assumption; every figure is an upper bound
-on LEV's error.
+**The truth ladder**, all strata pooled:
 
 | truth | assumption added | exploited | over-confidence |
 |---|---|---|---|
 | CISA KEV | KEV is complete | 236 | 7.91x |
 | CISA or SENSOR | honeypot sightings are real | 336 | 5.56x |
-| union of all lists | every listed sighting is real | 570 | **3.28x** |
-| Chapman(CISA, SENSOR) | + those two lists independent | 730 | 2.56x |
-| Chao lower bound | closed population | 887 | **2.11x** [1.89, 2.31] |
-| log-linear, AIC-selected | + no three-way interaction | 1,896 | 0.98x [0.59, 1.38] |
+| union of primary lists | every listed report is real | 734 | **2.54x** |
+| Chao lower bound | closed population | 1,094 | **1.71x** [1.56, 1.84] |
+| log-linear | no three-way interaction | — | not identified |
 
-**By counting alone, 30-58% of the gap measured against KEV is catalogue
-incompleteness** (7.91x to 5.56x trusting only honeypots; to 3.28x trusting all
-lists). Under Chao's bound, at least 73%.
+**By counting alone, about two-thirds (68%) of the gap measured against KEV is
+catalogue incompleteness.** KEV recorded at most 32% of what the primary lists
+observed (22% under Chao).
 
-**Where the estimate is identified, LEV still over-predicts ~2x.** Stratified
-by LEV, only the top stratum supports a stable estimate:
+**Where true exploitation can be estimated, LEV over-predicts it 2-2.5x:**
 
-| LEV stratum | N | union | Chao bound | log-linear |
-|---|---|---|---|---|
-| [0.0, 0.1) | 52,019 | 2.93x | 0.66x | **not identified** — below Chao's bound |
-| [0.1, 0.9) | 1,957 | 4.59x | 3.41x | **not identified** — models tie at 143 to 2,997 |
-| **[0.9, 1.0]** | 636 | 2.80x | 2.42x | **2.07x [1.75, 2.46]** |
+| LEV stratum | N | vs KEV | union | Chao | log-linear |
+|---|---|---|---|---|---|
+| [0.0, 0.1) | 52,019 | 21.1x | 2.36x | 0.82x | not identified |
+| [0.1, 0.9) | 1,957 | 9.11x | 3.19x | 2.28x | **2.45x** [1.91, 3.07] |
+| [0.9, 1.0] | 636 | 4.54x | 2.26x | 1.96x | **2.04x** [1.80, 2.32] |
 
-At LEV >= 0.9 LEV assigns ~98% probability; about 47% [40%, 56%] are estimated
-to have been exploited. Every rung above counting agrees at 2.1-2.4x.
+At LEV >= 0.9, LEV averages 0.985; an estimated 48% [42%, 55%] were exploited.
 
-The pooled log-linear figure (0.98x) is reported but **not claimed**: it pools
-strata the stratified analysis rejects as heterogeneous, and 86% of the lowest
-stratum's singletons are Telegram-only sightings whose false-positive rate is
-unknown. Resolving aggregate calibration needs a fourth independent list —
-VulnCheck KEV rebuilt without CISA evidence is wired in and runs automatically
-once a token is set.
+**List-set sensitivity** (log-linear over-confidence):
 
-**Dropping SENSOR** (Shadowserver is an EPSS label source, so EPSS is trained to
-predict what it records): over-confidence is 3.85x vs union and 2.71x vs
-Chao. The conclusion does not rest on the circular list.
+| lists | LEV [0.9, 1.0] | LEV [0.1, 0.9) | all LEV |
+|---|---|---|---|
+| CISA, SENSOR, VULNCHK (primary) | 2.04x [1.80, 2.32] | 2.45x [1.91, 3.07] | not identified |
+| CISA, SENSOR, strict VULNCHK | 2.12x [1.84, 2.42] | not identified | **2.63x [2.36, 2.93]** |
+| CISA, SENSOR, SOCIAL | 2.07x [1.73, 2.43] | not identified | not claimed (0.98x) |
+| all four | 1.54x [0.70, 2.02] | not identified | not claimed (0.35x) |
+| CISA, SOCIAL, VULNCHK (no SENSOR) | not identified | not identified | not identified |
+
+The top-stratum ~2x holds in every configuration built from evidence-citing
+lists; only adding Telegram to a four-list model moves it (1.54x, interval
+including 1). "Strict" VulnCheck keeps a CVE only if a sensor saw it or at
+least two independent sources reported it (2,912 CVEs) — the precision check,
+since 65% of VulnCheck-only CVEs rest on a single text report. **The middle
+stratum's 2.45x does not survive it** (not identified; Chao caps it at 3.19x).
 
 ![capture-recapture](figures/capture_recapture.png)
 
 ### Correction curve (`recalibrate.py`)
 
 The one model this study fits: a monotone map from LEV to observed
-exploitation probability. Isotonic regression and Platt scaling, two targets,
-**scored on held-out CVEs only**. The deciding test is **prospective** — fitted
-at 2025-08-01, applied to 44,316 CVEs first scored later, which it never saw.
+exploitation probability, **scored on held-out CVEs only**. The deciding test is
+**prospective** — fitted at 2025-08-01, applied to 44,316 CVEs first scored
+later, which it never saw.
 
 | CISA KEV target, prospective | Brier | ECE | pred/obs |
 |---|---|---|---|
@@ -404,25 +414,24 @@ at 2025-08-01, applied to 44,316 CVEs first scored later, which it never saw.
 | Platt | 0.0037 | 0.0015 | 0.66x |
 | Platt + CVE age | 0.0036 | **0.0014** | **0.72x** |
 
-Against the union target, isotonic transfers almost exactly: **0.95x**,
-ECE 0.0163 to 0.0021.
+Against the union of primary lists, isotonic **transfers exactly: 1.00x**,
+ECE 0.0137 to 0.0046.
 
-**The correction cuts held-out calibration error 11-17x, but its level drifts.**
-A year later it under-predicts the KEV target by 28-39%. The same LEV means
-different things at different CVE ages — an old CVE reaches LEV 0.5 through
-many modest EPSS scores, a new one through a few high ones — and conditioning
-on age recovers about a quarter of the drift. This is the convex-growth finding
-seen from a second direction.
+Against KEV the correction cuts calibration error 11-17x but drifts, under-
+predicting by 28-39% a year later. Much of that is KEV's narrow, lagging
+coverage — the broader target shows no drift. What remains is age: an old CVE
+reaches LEV 0.5 through many modest EPSS scores, a new one through a few high
+ones, and conditioning on age recovers about a quarter of the KEV-target drift.
 
 What a LEV score is worth, fitted on all data:
 
-| LEV | corrected to CISA KEV | corrected to union of lists |
+| LEV | corrected to CISA KEV | corrected to union of primary lists |
 |---|---|---|
-| 0.10 | 0.8% | 4.9% |
-| 0.50 | 2.7% | 9.2% |
-| 0.90 | 6.8% | 12.8% |
-| 0.99 | 8.2% | 24.2% |
-| 1.00 | 27.8% | 66.7% |
+| 0.10 | 0.8% | 6.1% |
+| 0.50 | 2.7% | 15.4% |
+| 0.90 | 6.8% | 21.4% |
+| 0.99 | 8.2% | 32.7% |
+| 1.00 | 27.8% | 76.3% |
 
 Both targets are catalogue appearance, so both are lower bounds on true
 exploitation.
@@ -730,12 +739,13 @@ marked with an `ASSUMPTION` / `PROXY` comment at the point it is made.
    DATA_SNAPSHOT.md — observed live when a 2026-09-01 file appeared mid-session.
    Now pinned to `ARCHIVE_END = 2026-08-01`; raise it deliberately and update
    DATA_SNAPSHOT.md in the same commit.
-45. **Two sources that look independent of CISA KEV contain all of it**
-   (`download_circl.py`, `DATASETS.md`). CIRCL's aggregated KEV catalogue holds
-   all 1,676 CISA KEV CVEs; VulnCheck KEV includes CISA KEV by its own
-   documentation. Either used raw as a second list makes capture–recapture
-   collapse silently. Both are excluded or rebuilt from per-report provenance;
-   any replication must audit overlap before modelling, not after.
+45. **Nested sources: three containments, found by audit** (`download_circl.py`,
+   `download_vulncheck.py`). CIRCL's aggregated KEV catalogue holds all 1,676
+   CISA KEV CVEs; VulnCheck KEV includes CISA KEV by its own documentation; and
+   VulnCheck's Shadowserver-sourced reports cover all 969 SENSOR CVEs. Any of
+   them used raw makes capture–recapture collapse silently. Each is excluded or
+   rebuilt from per-report provenance. A containment the audit missed would bias
+   estimates downward; any replication must audit overlap before modelling.
 46. **The exploitation lists are dependent, and the model assumes no three-way
    interaction** (`capture_recapture.py`). Pairwise estimates span 530 to
    1,256, so independence is rejected and two-way interactions are fitted. The
@@ -745,16 +755,17 @@ marked with an `ASSUMPTION` / `PROXY` comment at the point it is made.
    the estimate must not exceed the population, and it must not fall below
    Chao's heterogeneity-robust lower bound. Two of three LEV strata fail.
 47. **Telegram sightings may include false claims** (`capture_recapture.py`).
-   Threat actors post mass lists of CVEs they claim to use. 86% of the lowest
-   LEV stratum's singletons are Telegram-only, which inflates Chao's estimate
-   there; that stratum is not identified for this reason. Every headline
-   figure is also reported with SOCIAL excluded (CISA or SENSOR: 5.56x).
+   Threat actors post mass lists of CVEs they claim to use; with three lists,
+   86% of the lowest stratum's singletons were Telegram-only. Recorded before
+   VulnCheck was available, this is why the primary analysis uses the three
+   evidence-citing lists and SOCIAL appears only as a sensitivity. Adding it
+   to a four-list model is the one configuration that moves the top-stratum
+   estimate (2.04x to 1.54x).
 48. **Shadowserver is an EPSS label source** (`capture_recapture.py`). EPSS is
    trained to predict roughly what the SENSOR list records, so LEV judged
-   against it is judged on home ground. Dropping SENSOR moves over-confidence
-   from 3.28x to 3.85x (union) and 2.11x to 2.71x (Chao): the conclusion
-   survives, and LEV looks worse without the list it was trained toward, as
-   expected.
+   against it is judged on home ground. Without SENSOR no log-linear estimate
+   is identified, but counting gives 2.10x pooled and 2.24x at the top, in line
+   with the primary result.
 49. **The prior-work search was targeted, not systematic.** It covered arXiv
    and the web for LEV evaluations and exploitation capture–recapture through
    2026-09-28 and found neither. A systematic sweep of arXiv cs.CR, WEIS,
@@ -771,3 +782,20 @@ marked with an `ASSUMPTION` / `PROXY` comment at the point it is made.
    published CVEs. The full-cohort sensitivity run (older CVEs, over-confidence
    2.32x log-linear) is biased because the sensor could not see their early
    exploitation.
+52. **VulnCheck precision carries the estimates** (`capture_recapture.py`).
+   With four lists, 84-99% of single-list captures are VulnCheck-only, and 65%
+   of VulnCheck-only CVEs rest on one text report (median one report per CVE).
+   The strict configuration (sensor-observed or >= 2 independent sources,
+   2,912 CVEs) keeps the top-stratum result (2.12x) and identifies the pooled
+   one (2.63x), but the middle stratum's 2.45x does not survive it.
+53. **The four-list results need a VulnCheck token to reproduce**
+   (`download_vulncheck.py`, `DATA_SNAPSHOT.md`). VulnCheck's terms are silent
+   on redistribution, so the snapshot stays in gitignored `cache/` and its hash
+   is recorded instead. Without a token the pipeline falls back to CISA +
+   SENSOR + SOCIAL and reproduces the three-list results, not the primary ones.
+54. **Part of the KEV gap is definitional.** EPSS is trained on IDS and honeypot
+   detections, so LEV estimates observed exploitation *activity*; KEV lists
+   confirmed, actionable exploitation. Sensor-based lists are closer to LEV's
+   own definition, which is part of why LEV looks better against them. The
+   choice of ground truth is a choice of definition, and should be stated with
+   any LEV calibration figure.

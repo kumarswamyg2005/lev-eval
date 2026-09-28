@@ -4,9 +4,7 @@ Source: https://api.vulncheck.com/v3/backup/vulncheck-kev
 Needs a FREE community token: register at console.vulncheck.com, generate a
 token, then   export VULNCHECK_API_TOKEN=<token>   and run this script.
 
-UNTESTED: written against VulnCheck's published schema, but no token was
-available when it was written, so it has never run end to end.  Check the first
-run's printed counts against the dashboard before using the output.
+Tested 2026-09-28 against a live community token; schema matched.
 
 VulnCheck KEV is a SUPERSET of CISA KEV as shipped ("encompasses all
 vulnerabilities listed in the CISA KEV catalog, plus approximately 80% more"),
@@ -16,9 +14,21 @@ per-report provenance (the research brief's L2'):
 
   1. ignore cisa_date_added entirely
   2. drop every vulncheck_reported_exploitation[] report hosted on cisa.gov
-  3. keep a CVE only if a report survives, or VulnCheck's own honeypot
+  3. ALSO drop every report hosted on shadowserver.org.  VulnCheck's largest
+     single source is dashboard.shadowserver.org (401,967 reports), which is
+     the same honeypot feed as the SENSOR list: all 969 CIRCL sensor CVEs
+     appear in VulnCheck's Shadowserver subset (checked 2026-09-28).  Kept, it
+     would make this list a superset of SENSOR -- the CISA trap again.
+  4. keep a CVE only if a report survives, or VulnCheck's own honeypot
      canaries saw it (reported_exploited_by_vulncheck_canaries)
-  4. its date is the earliest surviving report
+  5. its date is the earliest surviving report
+
+First run (2026-09-28): 5,371 records -> 4,815 CVEs.  For 78% of CISA-listed
+CVEs the earliest surviving report predates CISA's listing (median 24 days
+earlier), so the remaining evidence is not an echo of CISA.
+
+The raw download stays in cache/ (gitignored): VulnCheck's terms do not say
+whether it may be redistributed.
 
 When no token is set, load() returns None and the capture-recapture analysis
 runs on the lists that need no account.
@@ -39,6 +49,8 @@ import requests
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / "cache" / "vulncheck_kev.json"
 URL = "https://api.vulncheck.com/v3/backup/vulncheck-kev"
+# report hosts that are sensor networks rather than write-ups
+SENSOR_HOSTS = ("api.vulncheck.com", "crowdsec", "dshield", "greynoise")
 
 
 def _download(token):
@@ -69,23 +81,37 @@ def load():
             return None
         records = _download(token)
 
+    def independent(url):
+        host = urlparse(url or "").netloc.lower()
+        return "cisa.gov" not in host and "shadowserver" not in host
+
     rows, dropped_cisa_only = [], 0
     for rec in records:
         reports = [r for r in rec.get("vulncheck_reported_exploitation") or []
-                   if "cisa.gov" not in urlparse(r.get("url", "")).netloc]
+                   if independent(r.get("url"))]
         canary = bool(rec.get("reported_exploited_by_vulncheck_canaries"))
         if not reports and not canary:
             dropped_cisa_only += 1
             continue
         dates = [r.get("date_added") for r in reports if r.get("date_added")]
         first = min(dates) if dates else rec.get("date_added")
+        # STRICT: sensor-observed, or reported by at least two independent
+        # hosts.  65% of VulnCheck-only CVEs rest on one text report (checked
+        # 2026-09-28), so this is the precision check on VulnCheck's weakest
+        # entries.
+        hosts = {urlparse(r.get("url", "")).netloc.lower() for r in reports}
+        sensor = canary or any(k in h for h in hosts for k in SENSOR_HOSTS)
+        strict = sensor or len(hosts) >= 2
         for cve in rec.get("cve") or []:
-            rows.append({"cve": cve, "date": first, "via_canary": canary})
+            rows.append({"cve": cve, "date": first, "via_canary": canary,
+                         "strict": strict})
     df = pd.DataFrame(rows).drop_duplicates("cve")
     df["date"] = pd.to_datetime(df["date"], utc=True,
                                 errors="coerce").dt.tz_localize(None)
+    print(f"VulnCheck: {int(df['strict'].sum()):,} of them STRICT "
+          "(sensor-observed or >= 2 independent sources)")
     print(f"VulnCheck: {len(records):,} records -> {len(df):,} CVEs in the "
-          f"CISA-free list ({dropped_cisa_only:,} had only CISA-sourced evidence)")
+          f"CISA-free list ({dropped_cisa_only:,} had only CISA or Shadowserver evidence)")
     return df
 
 
