@@ -242,7 +242,8 @@ it; the study records 44 threats to validity in total.</p></div>
  (i) Incomplete by design &mdash; CISA lists only what it confirms and prioritises for federal
  remediation. (ii) <code>dateAdded</code> is when CISA catalogued, not when exploitation happened.
  (iii) It is an input <em>feature</em> to EPSS, so it partly predicts the very score being tested
- against it; removing that leak moves over-prediction from 11.9x to 32.7x.</td></tr>
+ against it. Before CISA listed them, only 15% of KEV members with a pre-listing history had LEV
+ &ge; 0.5; high LEV among KEV members mostly arrives after listing.</td></tr>
 <tr><td class="name"><strong>CVE List v5</strong></td><td class="name">Vendor names are unnormalised
  CNA free text, and a CVE affecting many products is attributed to the first listed. Per-vendor counts
  are lower bounds.</td></tr>
@@ -270,11 +271,13 @@ it; the study records 44 threats to validity in total.</p></div>
  filtering out CISA-sourced reports.</td></tr>
 <tr><td class="name"><strong>CIRCL</strong><br><span class="dim">Vulnerability-Lookup</span></td>
  <td><span class="badge b-free">open</span></td>
- <td class="name">Third list. Carries Shadowserver honeypot telemetry, no contract needed.</td>
- <td class="name">Coverage depth unverified.</td></tr>
+ <td class="name">Used in Phase 2: 969 CVEs from Shadowserver honeypots, 2,396 from Telegram and
+ similar channels.</td>
+ <td class="name">Its aggregated KEV catalogue contains all of CISA KEV and must be excluded.</td></tr>
 <tr><td class="name"><strong>ENISA EUVD</strong></td><td><span class="badge b-free">open</span></td>
- <td class="name">Fourth list, EU-sourced, partially independent.</td>
- <td class="name">Its KEV dump is a CISA+EU consolidation; use the exploited-flag search.</td></tr>
+ <td class="name">Checked in Phase 2: EU KEV is 66 CVEs.</td>
+ <td class="name">Not used &mdash; 88% of its CISA overlap carries CISA's own date, and the
+ exploited-flag search returns the same consolidated set.</td></tr>
 <tr><td class="name"><strong>GreyNoise</strong><br><span class="dim">Research Program</span></td>
  <td><span class="badge b-app">apply</span></td>
  <td class="name">Internet-wide sensor telemetry &mdash; the strongest independence claim available.</td>

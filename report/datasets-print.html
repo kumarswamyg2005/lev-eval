@@ -24,7 +24,7 @@ p{margin:0;orphans:3;widows:3}
 .stack-s{display:flex;flex-direction:column;gap:6pt;break-after:avoid}
 section{margin-top:19pt}
 .eyebrow{font-family:var(--mono);font-size:7pt;letter-spacing:.15em;text-transform:uppercase;
- color:var(--muted);font-weight:500}
+ color:var(--muted);font-weight:500;break-after:avoid;break-inside:avoid}
 .lede{font-size:11.2pt;line-height:1.5}
 .meta{font-family:var(--mono);font-size:7.6pt;color:var(--muted);line-height:1.7}
 .cover{border-bottom:2.5pt solid var(--ink);padding-bottom:13pt}
@@ -123,23 +123,24 @@ GreyNoise or Shadowserver is partly circular.</p></div>
 <p class="note"><strong>Worse, and this hits work already done.</strong> CISA KEV is an input
 <em>feature</em> to EPSS v3 &mdash; &ldquo;Public vulnerability lists (3 features): CISA KEV, Google
 Project Zero, Trend Micro ZDI.&rdquo; Phase 1 therefore compared a predictor that has the outcome baked
-into it. Measured in <code>analysis/leakage.py</code>:</p>
+into it. Measured in <code>analysis/leakage.py</code> with two designs that cannot select on the
+outcome:</p>
 <div class="tw"><table>
-<thead><tr><th>Cohort</th><th class="num">n</th><th class="num">in KEV</th><th class="num">mean LEV</th>
-<th class="num">observed</th><th class="num">over-confidence</th></tr></thead>
-<tr><td>All CVEs, as reported in Phase 1</td><td class="num">100,905</td><td class="num">471</td>
- <td class="num">0.0555</td><td class="num">0.00467</td><td class="num">11.9&times;</td></tr>
-<tr><td>Leak-free (not on KEV when the model was trained)</td><td class="num">100,598</td>
- <td class="num">164</td><td class="num">0.0533</td><td class="num">0.00163</td>
- <td class="num"><strong>32.7&times;</strong></td></tr>
+<thead><tr><th>Test</th><th>Result</th></tr></thead>
+<tr><td>EPSS across the listing date, net of non-KEV controls with the same starting score
+ (1,168 CVEs; pairs straddling a retraining excluded)</td>
+ <td>median &times;1.00; upper quartile &ge; &times;2.85</td></tr>
+<tr><td>LEV before CISA listed them (220 KEV members with a pre-listing history, median 2.8
+ months)</td><td>15% at LEV &ge; 0.5; median 0.005, against 1.0 afterwards</td></tr>
 </table></div>
-<p style="margin-top:9pt">The direction is the good one for the central claim: <strong>over-confidence
-nearly triples once the leak is removed</strong>, so the published 17.2&times; and 12.6&times; figures are
-<em>conservative</em>. A model partly told the answer still over-predicts by an order of magnitude.</p>
-<p class="note b">It cuts the other way on discrimination. Leak-free, the observed/predicted ratio spans
-only 0.019&ndash;0.047 across the ten buckets, against 0.010&ndash;0.131 with the leak included. The top
-bucket&rsquo;s departure from the plateau &mdash; 3.29&times; raw, 2.31&times; normalized &mdash; is
-<strong>largely circularity</strong>. Soften the top-bucket claims; keep the over-confidence claim.</p>
+<p style="margin-top:9pt">The leak is real for a sizeable minority of listed CVEs, not all of them. The
+larger finding is that <strong>high LEV among KEV members is mostly a consequence of listing, not a
+forecast of it</strong> &mdash; which bears directly on CSWP 41&rsquo;s proposal to use LEV to find
+exploited CVEs missing from KEV.</p>
+<p class="note b"><strong>Withdrawn.</strong> An earlier version of this page reported over-confidence
+rising from 11.9&times; to 32.7&times; on a &ldquo;leak-free&rdquo; cohort, and a compressed
+discrimination range there. That cohort was built by deleting KEV members only, keeping every non-member,
+so the observed rate fell by construction. Both results are withdrawn.</p>
 </section>
 
 <section>
@@ -167,12 +168,15 @@ two-source Lincoln&ndash;Petersen assumes independent capture and will be reject
  only source with per-report provenance and dates, so independence can be <em>constructed</em> rather
  than asserted. Free, one API key, single bulk download.</td></tr>
 <tr><td class="rank">2</td><td class="k">CIRCL<br>Vulnerability-Lookup</td><td><strong>Best third
- list.</strong> No auth at all. Carries Shadowserver honeypot data via the ShadowSight feeder with
- <code>type=exploited</code> &mdash; real sensor telemetry without a Shadowserver contract. Coverage
- depth unverified.</td></tr>
-<tr><td class="rank">3</td><td class="k">ENISA EUVD</td><td>Good third or fourth list, no auth,
- EU-sourced. <code>/api/kev/dump</code> is explicitly a CISA+EU consolidation &mdash; use
- <code>/api/search?exploited=true</code> and treat the KEV dump as contaminated.</td></tr>
+ list &mdash; now used.</strong> No auth. Checked 2026-09-28: 969 CVEs from Shadowserver's honeypot
+ feed and 2,396 from Telegram and similar channels, each sighting with its source. <strong>Its
+ aggregated KEV catalogue contains all 1,676 CISA KEV CVEs</strong> &mdash; classify by source and
+ exclude that part, or capture&ndash;recapture collapses.</td></tr>
+<tr><td class="rank">3</td><td class="k">ENISA EUVD</td><td><strong>Checked and not used.</strong>
+ <code>/api/search?exploited=true</code> returns the same 1,740 consolidated entries as the KEV dump,
+ so it is equally contaminated. EU KEV proper is 66 CVEs; 55 are on CISA KEV and 88% of those carry
+ CISA&rsquo;s own date, so it is derivative. <em>(Corrected: previously recommended the
+ exploited-flag search as the clean route.)</em></td></tr>
 <tr><td class="rank">4</td><td class="k">GreyNoise</td><td>Strong data and genuinely independent of CISA,
  but EPSS-circular per correction 3, and access is reviewed rather than instant. Apply now regardless
  &mdash; it is the long pole.</td></tr>

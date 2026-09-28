@@ -33,6 +33,9 @@ Every script is standalone and everything downloaded is cached under `cache/`
     python analysis/plateau.py       # Task C: plateau fit + c-drift test
     python analysis/top_bucket.py    # Task D: top-bucket stratification
     python analysis/vendor_ceiling.py # Task F: vendor-ceiling bound
+    python analysis/leakage.py        # Phase 2: KEV-as-EPSS-feature circularity
+    python analysis/capture_recapture.py  # Phase 2: estimated true exploitation
+    python analysis/recalibrate.py    # Phase 2: correction curve, held-out
     python analysis/leakage.py       # circularity check: EPSS uses KEV as a feature
 
 ## Status
@@ -44,6 +47,13 @@ Every script is standalone and everything downloaded is cached under `cache/`
 | 3 LEV / LEV2 | `models/lev.py` | done |
 | 4 Table 5 check | `analysis/validate.py` | **PASS** |
 | 5 Calibration | `analysis/calibration.py` | done |
+| Phase 1 follow-ups (B-F, drift, normalization, sampling) | `analysis/*.py` | done |
+| Circularity (KEV as EPSS feature) | `analysis/leakage.py` | done — earlier figure withdrawn, see threat 41 |
+| Second exploitation lists | `data/download_circl.py`, `download_euvd.py` | done — audited |
+| VulnCheck KEV, CISA-free | `data/download_vulncheck.py` | **written, untested — needs a free token** |
+| Capture–recapture | `analysis/capture_recapture.py` | done |
+| Correction curve, prospective validation | `analysis/recalibrate.py` | done |
+| Paper draft | `paper/draft.md` -> `paper/draft.pdf` (`bash paper/build.sh`) | **first draft** |
 
 ### Task 4 result (dn = 2025-03-01, 67 monthly snapshots)
 
@@ -267,12 +277,17 @@ published values:
 | 2023-03-07 | 0.015 | 0.0594 | 0.0434 | 296% | 189% | 107pp |
 | 2022-02-04 | 0.047 | 0.0855 | 0.0665 | 82% | 41% | 40pp |
 | 2021-04-14 | 0.087 | 0.1095 | 0.0895 | 26% | **3%** | 23pp |
-| all CVEs | 0.146 | 0.2627 | 0.2376 | 80% | 63% | 17pp |
+| all CVEs | 0.146 | 0.1419 | 0.1213 | 3% | 17% | **-14pp** |
 
-Mean absolute deviation from NIST: **120.9% raw -> 74.1% normalized**, 39% of
-the deviation removed, and **4 of 4 rows move toward NIST**. At `dn` =
-2025-03-01 raw and norm are identical by construction — no window reaches the
-v4 boundary.
+Mean absolute deviation from NIST: **101.6% raw -> 62.7% normalized**, 38% of
+the deviation removed; **3 of 4 rows move toward NIST**. The "all CVEs" row
+moves away: once it received the same backfill correction as the other three,
+it already sat within 3% raw. At `dn` = 2025-03-01 raw and norm are identical
+by construction — no window reaches the v4 boundary.
+
+*Corrected 2026-09-28: this table previously showed the "all CVEs" row before
+its backfill fix (0.2627 / 0.2376), giving 120.9% -> 74.1% and 4 of 4 rows. The
+three restricted rows are unchanged.*
 
 ### Task C'.1 — organic vs retraining EPSS drift (`epss_drift.py`)
 
@@ -299,6 +314,132 @@ No deceleration in either cohort; month-over-month increments grow. Cohort
 mean EPSS rises rather than decays. See threats 12-16.
 
 ![dn sweep](figures/dn_sweep.png)
+
+## Phase 2 results
+
+Phase 1 could show LEV and CISA KEV disagree, but not how much of that is LEV
+error versus KEV incompleteness, because KEV was the only ground truth. Phase 2
+adds independent exploitation lists and estimates the exploitation that **no**
+list recorded.
+
+### Independent exploitation lists (`data/download_circl.py`, `data/download_euvd.py`)
+
+Every candidate was audited for overlap with CISA KEV before use. Two sources
+that look independent are not:
+
+| source | CVEs | overlap with CISA KEV | verdict |
+|---|---|---|---|
+| CIRCL aggregated KEV catalogue | 3,149 | **all 1,676** | superset — excluded |
+| VulnCheck KEV (as shipped) | ~3.6x CISA | all of it, by its own docs | must be rebuilt CISA-free |
+| EU KEV (ENISA) | 66 | 55, 88% carrying CISA's own date | derivative — excluded |
+| **Shadowserver honeypots** (via CIRCL) | 969 | 286 (29.5%) | **used: SENSOR** |
+| **Telegram / social** (via CIRCL) | 2,396 | 1,128 (47.1%) | **used: SOCIAL** — 58% seen *before* CISA |
+
+Using either superset as a "second list" makes capture–recapture return a
+confident, meaningless number: the overlap equals CISA KEV by construction.
+
+### Capture–recapture (`capture_recapture.py`)
+
+Population: the 54,612 CVEs first scored 2024-10-24 .. 2026-01-30, so every
+list could observe every CVE from birth. 570 captured by at least one list.
+
+Pairwise estimates disagree by 2.4x (530 to 1,256), so the lists are dependent
+and the dependence is modelled: log-linear models over every hierarchical
+two-way interaction structure, selected by AIC, parametric bootstrap CI, with
+Chao's heterogeneity-robust lower bound as a consistency check.
+
+**The truth ladder** — LEV's over-confidence against progressively stronger
+notions of truth. Each rung adds one assumption; every figure is an upper bound
+on LEV's error.
+
+| truth | assumption added | exploited | over-confidence |
+|---|---|---|---|
+| CISA KEV | KEV is complete | 236 | 7.91x |
+| CISA or SENSOR | honeypot sightings are real | 336 | 5.56x |
+| union of all lists | every listed sighting is real | 570 | **3.28x** |
+| Chapman(CISA, SENSOR) | + those two lists independent | 730 | 2.56x |
+| Chao lower bound | closed population | 887 | **2.11x** [1.89, 2.31] |
+| log-linear, AIC-selected | + no three-way interaction | 1,896 | 0.98x [0.59, 1.38] |
+
+**By counting alone, 30-58% of the gap measured against KEV is catalogue
+incompleteness** (7.91x to 5.56x trusting only honeypots; to 3.28x trusting all
+lists). Under Chao's bound, at least 73%.
+
+**Where the estimate is identified, LEV still over-predicts ~2x.** Stratified
+by LEV, only the top stratum supports a stable estimate:
+
+| LEV stratum | N | union | Chao bound | log-linear |
+|---|---|---|---|---|
+| [0.0, 0.1) | 52,019 | 2.93x | 0.66x | **not identified** — below Chao's bound |
+| [0.1, 0.9) | 1,957 | 4.59x | 3.41x | **not identified** — models tie at 143 to 2,997 |
+| **[0.9, 1.0]** | 636 | 2.80x | 2.42x | **2.07x [1.75, 2.46]** |
+
+At LEV >= 0.9 LEV assigns ~98% probability; about 47% [40%, 56%] are estimated
+to have been exploited. Every rung above counting agrees at 2.1-2.4x.
+
+The pooled log-linear figure (0.98x) is reported but **not claimed**: it pools
+strata the stratified analysis rejects as heterogeneous, and 86% of the lowest
+stratum's singletons are Telegram-only sightings whose false-positive rate is
+unknown. Resolving aggregate calibration needs a fourth independent list —
+VulnCheck KEV rebuilt without CISA evidence is wired in and runs automatically
+once a token is set.
+
+**Dropping SENSOR** (Shadowserver is an EPSS label source, so EPSS is trained to
+predict what it records): over-confidence is 3.85x vs union and 2.71x vs
+Chao. The conclusion does not rest on the circular list.
+
+![capture-recapture](figures/capture_recapture.png)
+
+### Correction curve (`recalibrate.py`)
+
+The one model this study fits: a monotone map from LEV to observed
+exploitation probability. Isotonic regression and Platt scaling, two targets,
+**scored on held-out CVEs only**. The deciding test is **prospective** — fitted
+at 2025-08-01, applied to 44,316 CVEs first scored later, which it never saw.
+
+| CISA KEV target, prospective | Brier | ECE | pred/obs |
+|---|---|---|---|
+| raw LEV | 0.0112 | 0.0229 | 6.28x |
+| isotonic | 0.0036 | 0.0020 | 0.61x |
+| Platt | 0.0037 | 0.0015 | 0.66x |
+| Platt + CVE age | 0.0036 | **0.0014** | **0.72x** |
+
+Against the union target, isotonic transfers almost exactly: **0.95x**,
+ECE 0.0163 to 0.0021.
+
+**The correction cuts held-out calibration error 11-17x, but its level drifts.**
+A year later it under-predicts the KEV target by 28-39%. The same LEV means
+different things at different CVE ages — an old CVE reaches LEV 0.5 through
+many modest EPSS scores, a new one through a few high ones — and conditioning
+on age recovers about a quarter of the drift. This is the convex-growth finding
+seen from a second direction.
+
+What a LEV score is worth, fitted on all data:
+
+| LEV | corrected to CISA KEV | corrected to union of lists |
+|---|---|---|
+| 0.10 | 0.8% | 4.9% |
+| 0.50 | 2.7% | 9.2% |
+| 0.90 | 6.8% | 12.8% |
+| 0.99 | 8.2% | 24.2% |
+| 1.00 | 27.8% | 66.7% |
+
+Both targets are catalogue appearance, so both are lower bounds on true
+exploitation.
+
+![recalibration](figures/recalibration.png)
+
+### Prior work (checked 2026-09-28)
+
+A targeted search found **no empirical evaluation of LEV's calibration** and
+**no capture–recapture estimate of exploitation-catalogue completeness**. Closest
+work: Empirical Security's descriptive KEV coverage figure (at most ~8.7%, from
+proprietary telemetry); the RiskBasedPrioritization independent LEV
+implementation, which critiques its assumptions without validating against
+exploitation data; and ThreatLens (arXiv 2608.22306), which trains on KEV as
+weak supervision — the label bias measured here. References with verification
+status: `paper/references.md`. A systematic sweep is still required before
+submission (threat 49).
 
 ## Threats to validity
 
@@ -451,10 +592,12 @@ marked with an `ASSUMPTION` / `PROXY` comment at the point it is made.
 26. **Table 5 convergence is independent corroboration, and partially bounds
    threat 22** (`version_normalize.py`). The percentile normalization is
    derived from EPSS data alone and never sees NIST's published values, yet
-   all four Table 5 rows move toward them and mean absolute deviation falls
-   from 120.9% to 74.1%. If percentile mapping were mostly stripping genuine
-   v4 signal rather than a corpus artifact, deviations would have grown. This
-   bounds that threat; it does not eliminate it.
+   three of four Table 5 rows move toward them and mean absolute deviation
+   falls from 101.6% to 62.7%. The fourth ("all CVEs") moves away, from 3% to
+   17% — it spans pre-v3 EPSS versions the v3 reference does not describe well.
+   This bounds the threat on v3-era rows; it does not eliminate it.
+   *(Corrected: previously stated as all four rows, 120.9% -> 74.1%, before
+   the "all CVEs" row received its backfill fix.)*
 27. **The plateau constant c drifts with `dn`** (`plateau.py`). c falls 3.16x
    (0.192 -> 0.061) across the four analysis dates where the model fits, with
    disjoint endpoint CIs, p = 0.0082 across all six dates. KEV coverage should
@@ -540,33 +683,39 @@ marked with an `ASSUMPTION` / `PROXY` comment at the point it is made.
    CVEs in the Task F population sit there. All binning in this repo goes
    through the digitize-and-clip path in `calibration.reliability()`. Anyone
    re-binning these scores should check the top edge first.
-41. **The LEV-vs-KEV comparison is partly circular, and it was flattering the
-   headline number** (`leakage.py`). EPSS v3 uses *"CVE is listed on CISA KEV"*
-   as an **input feature** — Jacobs et al., arXiv:2302.14172, "Public
-   vulnerability lists (3 features)": CISA KEV, Google Project Zero, Trend
-   Micro ZDI. LEV is computed entirely from EPSS, so KEV membership is both
-   predictor and outcome. Restricting to CVEs whose KEV membership could not
-   have reached the model that scored them (not on KEV at the v2025.03.14
-   training, evaluated before the next retraining re-ingests the catalog):
+41. **The LEV-vs-KEV comparison is partly circular** (`leakage.py`). EPSS v3
+   uses *"CVE is listed on CISA KEV"* as an **input feature** (Jacobs et al.,
+   arXiv:2302.14172, "Public vulnerability lists (3 features)"), and LEV is
+   computed entirely from EPSS, so KEV membership can raise the score it is
+   then judged against. Measured two ways that cannot select on the outcome:
 
-   | cohort | n | in KEV | mean LEV | observed | over-confidence |
-   |---|---|---|---|---|---|
-   | all CVEs | 100,905 | 471 | 0.0555 | 0.00467 | 11.9x |
-   | leak-free | 100,598 | 164 | 0.0533 | 0.00163 | **32.7x** |
+   | test | result |
+   |---|---|
+   | EPSS across the KEV listing date, net of non-KEV controls with the same starting decile, same two snapshots (1,168 CVEs; retraining-straddling pairs excluded) | median x1.00; upper quartile >= x2.85; 45% rise more than controls |
+   | LEV before listing, for the 220 cohort KEV members first scored at least a month earlier (median 2.8 months) | 15% at LEV >= 0.5, 27% at >= 0.1; median 0.005, against 1.0 at dn |
 
-   **Over-confidence nearly triples once the leak is removed.** The Phase 1
-   figures (17.2x raw, 12.6x normalized) are therefore *conservative* — a
-   model partly told the answer still over-predicts by an order of magnitude.
-   This strengthens the central finding rather than undermining it.
-42. **The same leak inflated the discrimination and top-bucket results**
-   (`leakage.py`). On the leak-free cohort the observed/predicted ratio spans
-   only 0.019 to 0.047 across the ten buckets, against 0.010 to 0.131 with the
-   leak included. So the [0.9, 1.0) bucket's departure from the plateau — 3.29x
-   (raw) and 2.31x (normalized) in Task C — is **largely circularity**: high-LEV
-   CVEs are disproportionately KEV members partly because KEV membership raised
-   their EPSS score. Ranking still works (top bucket 138x the bottom bucket's
-   observed rate), but the *magnitude* of the top-bucket effect must be reported
-   leak-free. **Soften the top-bucket claims, keep the over-confidence claim.**
+   The boost is real for a sizeable minority, not universal. **High LEV among
+   KEV members is mostly a consequence of listing rather than a forecast of
+   it**, which bears directly on CSWP 41's proposed use of LEV to find
+   exploited CVEs missing from KEV. 56% of cohort KEV members were listed in
+   the same month EPSS first scored them, so LEV could not have preceded CISA
+   for them at all. Pre-listing LEV also covers fewer windows, so part of the
+   gap is elapsed time; the leading-indicator reading holds regardless.
+
+   **Withdrawn:** an earlier version reported over-confidence rising from
+   11.9x to 32.7x on a "leak-free" cohort and called the Phase 1 figures
+   conservative. That cohort was built by deleting the 307 KEV members listed
+   before the model's training date while keeping every non-member, so the
+   observed rate fell by construction. It selected on the outcome.
+42. **The circularity flatters the ranking and top-bucket results**
+   (`leakage.py`). Listed CVEs can be lifted into the top LEV bucket by their
+   listing, so the top bucket's KEV concentration overstates how well LEV
+   ranks *unlisted* exploitation. The capture–recapture top-stratum result
+   (2.07x over-prediction) inherits this in the conservative direction: CVEs
+   lifted there by listing are true positives, so without the boost the top
+   stratum's exploited share would likely be lower and the over-prediction
+   larger. The magnitude is not estimated here. *(An earlier version quantified
+   this on the withdrawn leak-free cohort; that figure is withdrawn with it.)*
 43. **Exploit-DB, Metasploit, Nuclei and Project Zero are also EPSS features**
    (same source). "Published exploit code (3 features): Exploit-DB, Github,
    Metasploit"; "Offensive security tools (4 features): Nuclei, Jaeles,
@@ -581,3 +730,44 @@ marked with an `ASSUMPTION` / `PROXY` comment at the point it is made.
    DATA_SNAPSHOT.md — observed live when a 2026-09-01 file appeared mid-session.
    Now pinned to `ARCHIVE_END = 2026-08-01`; raise it deliberately and update
    DATA_SNAPSHOT.md in the same commit.
+45. **Two sources that look independent of CISA KEV contain all of it**
+   (`download_circl.py`, `DATASETS.md`). CIRCL's aggregated KEV catalogue holds
+   all 1,676 CISA KEV CVEs; VulnCheck KEV includes CISA KEV by its own
+   documentation. Either used raw as a second list makes capture–recapture
+   collapse silently. Both are excluded or rebuilt from per-report provenance;
+   any replication must audit overlap before modelling, not after.
+46. **The exploitation lists are dependent, and the model assumes no three-way
+   interaction** (`capture_recapture.py`). Pairwise estimates span 530 to
+   1,256, so independence is rejected and two-way interactions are fitted. The
+   three-way interaction cannot be estimated with three lists and is assumed
+   zero — the standard identifying assumption, untestable here. Estimates are
+   reported only where identified: models within 2 AIC must agree within 2x,
+   the estimate must not exceed the population, and it must not fall below
+   Chao's heterogeneity-robust lower bound. Two of three LEV strata fail.
+47. **Telegram sightings may include false claims** (`capture_recapture.py`).
+   Threat actors post mass lists of CVEs they claim to use. 86% of the lowest
+   LEV stratum's singletons are Telegram-only, which inflates Chao's estimate
+   there; that stratum is not identified for this reason. Every headline
+   figure is also reported with SOCIAL excluded (CISA or SENSOR: 5.56x).
+48. **Shadowserver is an EPSS label source** (`capture_recapture.py`). EPSS is
+   trained to predict roughly what the SENSOR list records, so LEV judged
+   against it is judged on home ground. Dropping SENSOR moves over-confidence
+   from 3.28x to 3.85x (union) and 2.11x to 2.71x (Chao): the conclusion
+   survives, and LEV looks worse without the list it was trained toward, as
+   expected.
+49. **The prior-work search was targeted, not systematic.** It covered arXiv
+   and the web for LEV evaluations and exploitation capture–recapture through
+   2026-09-28 and found neither. A systematic sweep of arXiv cs.CR, WEIS,
+   eCrime, CCS, S&P, USENIX Security and NDSS from June 2025 is required before
+   the novelty claim is submitted; one missed paper costs it.
+50. **The correction curve is not stationary** (`recalibrate.py`). Fitted a
+   year earlier it under-predicts by 28-39% on new CVEs, because LEV's meaning
+   depends on CVE age. A deployed correction must be refitted periodically or
+   conditioned on age; the age-conditioned variant recovers only about a
+   quarter of the drift.
+51. **The capture–recapture population is short-lived** (`capture_recapture.py`).
+   SENSOR starts 2024-10-24, so the population is CVEs first scored in a
+   15-month window, each observed for 6-21 months. Results describe recently
+   published CVEs. The full-cohort sensitivity run (older CVEs, over-confidence
+   2.32x log-linear) is biased because the sensor could not see their early
+   exploitation.

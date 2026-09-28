@@ -441,13 +441,14 @@ detail, including why the obvious choice does not work unmodified, is in the com
  filtering out CISA-sourced reports.</td></tr>
 <tr><td class="name"><strong>CIRCL</strong><br><span class="dim">Vulnerability-Lookup</span></td>
  <td><span class="badge b-free">open</span></td>
- <td class="name">Third list. Carries Shadowserver honeypot telemetry with <code>type=exploited</code>
- &mdash; sensor evidence, no contract needed.</td>
- <td class="name">Coverage depth unverified.</td></tr>
+ <td class="name">Used in Phase 2: 969 CVEs from Shadowserver honeypots, 2,396 from Telegram and
+ similar channels.</td>
+ <td class="name">Its aggregated KEV catalogue contains all of CISA KEV and must be excluded.</td></tr>
 <tr><td class="name"><strong>ENISA EUVD</strong></td>
  <td><span class="badge b-free">open</span></td>
- <td class="name">Fourth list, EU-sourced, partially independent.</td>
- <td class="name">Its KEV dump is a CISA+EU consolidation; use the exploited-flag search instead.</td></tr>
+ <td class="name">Checked in Phase 2: EU KEV is 66 CVEs.</td>
+ <td class="name">Not used &mdash; 88% of its CISA overlap carries CISA's own date, and the
+ exploited-flag search returns the same consolidated set.</td></tr>
 <tr><td class="name"><strong>GreyNoise</strong><br><span class="dim">Research Program</span></td>
  <td><span class="badge b-app">apply</span></td>
  <td class="name">Internet-wide sensor telemetry &mdash; the strongest independence claim available.</td>
@@ -499,8 +500,9 @@ that formula behaves against observed exploitation. The measurement <em>is</em> 
  thing this study shows is incomplete and vendor-biased, at 32.5% of Microsoft CVEs against 2.3% of
  XWiki&rsquo;s at identical LEV. Such a model learns CISA&rsquo;s visibility, not exploitation.</td></tr>
 <tr><td class="k">Circularity</td><td class="name">EPSS already uses &ldquo;listed on CISA KEV&rdquo; as an input
- feature. Training on KEV labels using EPSS-derived inputs compounds the leak measured at 11.9x &rarr;
- 32.7x, rather than avoiding it.</td></tr>
+ feature, and among KEV members high LEV mostly arrives <em>after</em> listing &mdash; only 15% had LEV
+ &ge; 0.5 beforehand. Training on KEV labels with EPSS-derived inputs would compound that circularity,
+ not avoid it.</td></tr>
 <tr><td class="k">Weaker by<br>construction</td><td class="name">It would reproduce EPSS with less. EPSS uses 1,477
  features and proprietary honeypot label feeds from four commercial sources; this study holds five
  public ones.</td></tr>

@@ -58,7 +58,7 @@ validating LEV against GreyNoise or Shadowserver is partly circular.
 Worse, and this hits Phase 1 directly: **CISA KEV is an input *feature* to
 EPSS v3** — "Public vulnerability lists (3 features): CISA KEV, Google Project
 Zero, Trend Micro ZDI". See README threats 41–43 and `analysis/leakage.py`.
-Removing that leak moves over-confidence from 11.9x to 32.7x.
+Measured validly in `analysis/leakage.py`: at the listing date, against non-KEV CVEs with the same starting score, the median KEV CVE's EPSS does not move, but the upper quartile rises at least 2.85x more than controls. Before CISA listed them, only 15% of KEV members with a pre-listing history had LEV >= 0.5 (median 0.005, against 1.0 afterwards). *An earlier version reported 11.9x -> 32.7x on a 'leak-free' cohort; that cohort was built by deleting KEV members only, which selects on the outcome, and the figure is withdrawn.*
 
 VulnCheck is not, on available evidence, an EPSS labelling source — a further
 point in its favour. **Unverified**; confirm against the EPSS v4 data
@@ -84,8 +84,8 @@ A third list is what makes the log-linear approach possible.
 | # | Source | Verdict |
 |---|---|---|
 | 1 | **VulnCheck KEV Community** | Best. The only source with per-report provenance and dates, so independence can be *constructed* rather than asserted. Free, one API key, single bulk download. |
-| 2 | **CIRCL Vulnerability-Lookup sightings** | Best third list. No auth at all. Carries Shadowserver honeypot data via the ShadowSight feeder with `type=exploited` — real sensor telemetry without a Shadowserver contract. Coverage depth unverified. |
-| 3 | **ENISA EUVD** | Good third/fourth list. No auth, EU-sourced. `/api/kev/dump` is explicitly a CISA+EU consolidation — use `/api/search?exploited=true` and treat the KEV dump as contaminated. |
+| 2 | **CIRCL Vulnerability-Lookup sightings** | **Used in Phase 2.** No auth. Checked 2026-09-28: 969 CVEs from Shadowserver honeypots (SENSOR) and 2,396 from Telegram and similar (SOCIAL). **Its aggregated KEV catalogue contains all 1,676 CISA KEV CVEs** — classify by source and exclude it (`data/download_circl.py`). |
+| 3 | **ENISA EUVD** | **Checked, not used.** `/api/search?exploited=true` returns the same 1,740 consolidated entries as `/api/kev/dump`, so it is equally contaminated. EU KEV proper is 66 CVEs; 88% of its CISA overlap carries CISA's own date, so it is derivative. *(Corrected: previously recommended the exploited-flag search.)* |
 | 4 | **GreyNoise** | Strong data, genuinely independent of CISA, but EPSS-circular and access is reviewed. Apply now regardless — it is the long pole. |
 | 5 | **Project Zero 0day ITW** | Small N, browser/mobile skewed, and itself an EPSS feature. Not a second list; a high-precision stratum at best. |
 | 6 | **Shadowserver (direct)** | Effectively unobtainable — reports are scoped to IP space you can prove you own. Route via CIRCL. |
