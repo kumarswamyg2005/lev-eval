@@ -55,6 +55,12 @@ def cohort(wide, first_idx, dn):
     return (first_date >= EPSS_V3) & new & mature
 
 
+def poisson_ci(k, alpha=0.05):
+    """Exact (Garwood) interval on a Poisson count k."""
+    return (stats.chi2.ppf(alpha / 2, 2 * k) / 2 if k else 0.0,
+            stats.chi2.ppf(1 - alpha / 2, 2 * k + 2) / 2)
+
+
 def wilson_ci(k, n, alpha=0.05):
     """Wilson score interval for a binomial proportion k/n.
 
@@ -259,6 +265,9 @@ def main():
     print(f"Expected Calibration Error: {ece:.5f}")
     print(f"mean predicted / observed : {p.mean():.5f} / {y.mean():.5f} "
           f"(ratio {p.mean()/max(y.mean(), 1e-12):.1f}x)")
+    lo, hi = poisson_ci(int(y.sum()))
+    print(f"  95% interval on the ratio (Poisson error on the {int(y.sum())} KEV CVEs): "
+          f"{p.sum() / hi:.1f}x - {p.sum() / lo:.1f}x")
 
     plot(table, brier, ece, len(p))
     return 0

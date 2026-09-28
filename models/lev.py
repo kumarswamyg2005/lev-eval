@@ -1,6 +1,6 @@
 """LEV (Likely Exploited Vulnerabilities) per NIST CSWP 41, Mell & Spring, 2025.
 
-Implements Section 4.1 (LEV, Equation 3) and Section 4.2 (LEV2, Equation 5).
+Implements Section 4.1 (LEV) and Section 4.2 (LEV2).
 
 Everything works off a *wide* EPSS matrix: rows = CVE, columns = snapshot date,
 values = EPSS score on that date (NaN before the CVE first appears).
@@ -27,15 +27,16 @@ def to_wide(tidy):
 
 
 def _windows(d0, dn, window=WINDOW):
-    """Window start dates d0, d0+30, ... < dn, and their weights.
+    """Window start dates d0, d0+30, ... <= dn, and their weights.
 
-    weight(di, dn) = min(window, dn - di) / window   (CSWP 41 Sec. 4.1):
-    1.0 for a full window, the fraction remaining for the trailing partial one.
+    weight(di, dn) = winsize / window, winsize = min(window, datediff(di, dn)),
+    where CSWP 41 Table 4 defines datediff as the day count INCLUSIVE of both
+    ends: 1.0 for a full window, (days left + 1)/30 for the trailing one, and
+    1/30 for a window starting on dn itself.
     """
     starts = pd.date_range(d0, dn, freq=f"{window}D")
-    weights = np.minimum(window, (dn - starts).days) / window
-    keep = weights > 0
-    return starts[keep], weights[keep].to_numpy(dtype="float64")
+    weights = np.minimum(window, (dn - starts).days + 1) / window
+    return starts, weights.to_numpy(dtype="float64")
 
 
 def lev(wide, first_idx, dn=None, window=WINDOW):
@@ -44,9 +45,8 @@ def lev(wide, first_idx, dn=None, window=WINDOW):
     d0 is each CVE's first EPSS date; di = d0 + 30*i; the EPSS score used is
     the one at the *start* of each window.
 
-    ASSUMPTION (not in CSWP 41, but matching NIST's reference implementation):
-    when di is not a date we hold, the next available snapshot on or after di
-    is substituted.  With Phase-1 monthly sampling this substitution is the
+    When di is not a date we hold, the next available snapshot on or after di
+    is substituted -- the rule CSWP 41 Sec. 10.3 gives for missing EPSS days.  With Phase-1 monthly sampling this substitution is the
     dominant source of error: a 30-day stride against ~30.4-day spacing drifts,
     so some snapshots are reused for two windows and some are never read.
 
@@ -74,32 +74,32 @@ def lev(wide, first_idx, dn=None, window=WINDOW):
 
 
 def lev2(wide, first_idx, dn=None, window=WINDOW):
-    """LEV2(v, d0, dn) = 1 - prod_d (1 - epss(v, d))^(1/30)   [Eq. 5, Sec. 4.2]
+    """LEV2(v, d0, dn) = 1 - prod_{d in d0..dn} (1 - epss(v, d) / 30)   [Sec. 4.2]
 
-    Section 4.2's refinement: instead of sampling one score per 30-day window,
-    every day's EPSS score contributes its equivalent *daily* probability
-    1 - (1 - epss)^(1/30), and the daily survival probabilities are multiplied
-    across the whole interval.  Strictly greater than or equal to LEV, and the
-    paper notes it needs daily EPSS data to be exact.
+    Section 4.2's refinement: every day's EPSS score counts as a one-day
+    probability by "dividing them by 30", and the daily survival probabilities
+    are multiplied over d0..dn inclusive.  (epss/30 is CSWP 41's small-p
+    approximation; the exact daily rate 1 - (1 - epss)^(1/30) is not what the
+    white paper specifies.)
 
     `first_idx` is accepted only so lev2 and lev share a call signature; it is
     unused because pre-publication scores are already 0 and log1p(-0) = 0.
 
     ASSUMPTION (not in CSWP 41): with monthly snapshots we cannot see each day,
-    so each snapshot's score is held constant over the span until the next
-    snapshot -- exponent span/30 instead of 1/30.  Equivalent to Eq. 5 if EPSS
-    were piecewise-constant between snapshots, which it is not.
+    so each snapshot's score is held constant over the days until the next
+    snapshot (the last one through dn inclusive).  Equivalent to Sec. 4.2 if
+    EPSS were piecewise-constant between snapshots, which it is not.
 
     Returns a Series indexed by CVE.
     """
     dn = pd.Timestamp(dn or wide.columns[-1])
     wide = wide.loc[:, wide.columns <= dn]     # snapshots after dn are unseen
-    edges = np.append(wide.columns.to_numpy(), np.datetime64(dn))
-    spans = np.diff(edges) / np.timedelta64(1, "D") / window
+    edges = np.append(wide.columns.to_numpy(), np.datetime64(dn) + np.timedelta64(1, "D"))
+    days = np.diff(edges) / np.timedelta64(1, "D")          # dn itself included
 
-    vals = np.clip(wide.to_numpy(dtype="float64"), 0.0, 1.0 - 1e-12)
+    vals = np.clip(wide.to_numpy(dtype="float64"), 0.0, 1.0)
     # scores before a CVE's first appearance are 0 -> log1p(0) = 0, no-op
-    logsurv = np.log1p(-vals) @ spans
+    logsurv = np.log1p(-vals / window) @ days
     return pd.Series(1.0 - np.exp(logsurv), index=wide.index, name="lev2")
 
 
@@ -117,20 +117,23 @@ def _demo():
     got = lev(wide, first, dn=dn)
 
     # 'a': windows at 01-01, 01-31, 03-01, 03-31 -> snapshots 01-01, 02-01,
-    # 03-01, 04-01; last window has 1 day left -> weight 1/30.
-    want_a = 1 - (0.9 ** 3) * (1 - 0.1 / 30)
+    # 03-01, 04-01; last window spans 03-31..04-01 inclusive -> weight 2/30.
+    want_a = 1 - (0.9 ** 3) * (1 - 0.1 * 2 / 30)
     assert abs(got["a"] - want_a) < 1e-12, got["a"]
     assert got["b"] == 0.0                     # zero EPSS -> zero LEV
-    # 'c': first date 03-01, windows at 03-01 (full) and 03-31 (1 day)
-    want_c = 1 - (1 - 0.5) * (1 - 0.5 / 30)
+    # 'c': first date 03-01, windows at 03-01 (full) and 03-31 (2 days)
+    want_c = 1 - (1 - 0.5) * (1 - 0.5 * 2 / 30)
     assert abs(got["c"] - want_c) < 1e-12, got["c"]
+    # a window starting on dn itself counts one day: weight 1/30
+    one = lev(wide, first, dn=pd.Timestamp("2024-03-01"))
+    assert abs(one["c"] - 0.5 / 30) < 1e-12, one["c"]
 
-    # LEV2 >= LEV, and monotone in EPSS
     got2 = lev2(wide, first, dn=dn)
     assert got2["b"] == 0.0
-    assert (got2 >= got - 1e-9).all(), (got, got2)
-    # 'a' held at 0.1 for 91 days: 1 - 0.9^(91/30)
-    assert abs(got2["a"] - (1 - 0.9 ** (91 / 30))) < 1e-12, got2["a"]
+    # 'a' held at 0.1 over 01-01..04-01 inclusive = 92 days, 0.1/30 per day
+    assert abs(got2["a"] - (1 - (1 - 0.1 / 30) ** 92)) < 1e-12, got2["a"]
+    # 'c': 0.5 from 03-01..04-01 inclusive = 32 days
+    assert abs(got2["c"] - (1 - (1 - 0.5 / 30) ** 32)) < 1e-12, got2["c"]
     print("lev.py self-check OK")
 
 

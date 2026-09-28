@@ -34,6 +34,7 @@ Status key:
 | 23 | S. Motamedi Sedeh, P. Shahrivar, M. Qureshi, A. Devjiani, M. A. Tayebi. *ThreatLens: Evidence-Guided Ranking of High-Priority CVEs.* arXiv:2608.22306, 2026. | verified |
 | 24 | S. Shaffer and L. Voicu. *Modeling Local Exploit Hazard: A Bayesian Framework for Quantifying Exploit Risk and Operational Efficiency.* arXiv:2607.24618, 2026. | verified |
 | 25 | O. Binette and R. C. Steorts. *On the Reliability of Multiple Systems Estimation for the Quantification of Modern Slavery.* Journal of the Royal Statistical Society Series A, 2022. arXiv:2112.01594. | verified |
+| 26 | S. Huang, C. M. Poskitt, L. K. Shar. *Bayesian and Multi-Objective Decision Support for Incident Mitigation in Cyber-Physical Systems.* arXiv:2509.00770, 2025. | verified 2026-09-29 (uses LEV as an input; does not evaluate it) |
 
 ## Before submission
 

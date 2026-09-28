@@ -41,6 +41,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.special import gammaln
+from scipy.stats import beta
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from data import (download_circl, download_epss, download_kev,
@@ -327,12 +328,13 @@ def truth_ladder(H, lev, label, floor=None):
                       "over_lo": mean_lev / (hi / n) if hi else None,
                       "over_hi": mean_lev / (lo / n) if lo else None})
     has = lambda c: c in H.columns
-    add("CISA KEV", "KEV is complete", int(H["CISA"].sum()))
+    counted = lambda k: (k, *calibration.poisson_ci(k))     # Poisson 95% on a count
+    add("CISA KEV", "KEV is complete", *counted(int(H["CISA"].sum())))
     if has("SENSOR"):
         add("CISA or SENSOR", "honeypot sightings are real exploitation",
-            int((H["CISA"] | H["SENSOR"]).sum()))
+            *counted(int((H["CISA"] | H["SENSOR"]).sum())))
     add("union of all lists", "every listed sighting is real",
-        int((H.sum(axis=1) > 0).sum()))
+        *counted(int((H.sum(axis=1) > 0).sum())))
     if has("SENSOR"):
         N, *_ = chapman(H, "CISA", "SENSOR")
         add("Chapman(CISA, SENSOR)", "+ the two lists are independent", N)
@@ -447,6 +449,10 @@ def main():
 
     print(f"\n{'=' * 90}\nTRUTH LADDER -- over-confidence vs increasingly assumption-laden truth\n{'=' * 90}")
     ladder = truth_ladder(H, lev, "ALL LEV", floor=stratified_chao_lo(H, lev))
+    k, u = int(H["CISA"].sum()), int((H.sum(axis=1) > 0).sum())
+    lo, hi = beta.ppf(0.025, k, u - k + 1), beta.ppf(0.975, k + 1, u - k)   # Clopper-Pearson
+    print(f"\n  missing from KEV, of CVEs any list saw: {1 - k / u:.1%} "
+          f"[95%: {1 - hi:.1%}, {1 - lo:.1%}]")
 
     strata_ladders, strata_est = {}, {}
     for lo_, hi_ in STRATA:

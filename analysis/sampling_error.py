@@ -66,11 +66,9 @@ def sample(wide, first_idx, lev_norm, d0):
 
 
 def window_starts(d0, dn=DN, window=WINDOW):
-    """Exact window start dates and their weights, per CSWP 41 Sec. 4.1."""
-    starts = pd.date_range(d0, dn, freq=f"{window}D")
-    weights = np.minimum(window, (dn - starts).days) / window
-    keep = weights > 0
-    return starts[keep], weights[keep].to_numpy(float)
+    """Exact window start dates and their weights: the same windows lev() uses,
+    so the daily reference differs from monthly LEV only in which scores it reads."""
+    return levmod._windows(pd.Timestamp(d0), dn, window)
 
 
 def fetch_daily(dates):
@@ -110,6 +108,8 @@ def main():
     norm_wide = version_normalize.normalize(wide)
     m = calibration.cohort(wide, first_idx, DN)
     lev_norm = levmod.lev(norm_wide[m], first_idx[m], dn=DN)
+    # share of LEV mass that is EPSS version shift, computed rather than typed in
+    version_share = 1 - float(lev_norm.mean() / levmod.lev(wide[m], first_idx[m], dn=DN).mean())
     dates = wide.columns
     d0 = pd.Series(dates.to_numpy()[first_idx[m].to_numpy()], index=lev_norm.index)
 
@@ -212,17 +212,17 @@ def main():
     print(f"  population-weighted mean |diff| is {rel:.1%} of cohort mean LEV.")
     print(f"  (unweighted, on the decile-stratified sample: "
           f"{res['abs_diff'].mean() / res['daily'].mean():.1%})")
-    print("  Effects this must not swamp: 26.9% of LEV mass attributed to EPSS")
-    print("  version shift, and the 3.4-4.1x over-confidence bound.")
+    print(f"  Effects this must not swamp: {version_share:.1%} of LEV mass attributed to EPSS")
+    print("  version shift, and the vendor-ceiling over-confidence bound.")
     if rel < 0.10:
         print(f"\n  BOUNDED AND NEGLIGIBLE. At {rel:.1%} the sampling error is well")
-        print("  below the 26.9% version-mass effect and nowhere near the")
+        print(f"  below the {version_share:.1%} version-mass effect and nowhere near the")
         print("  multiplicative bounds. Monthly sampling is a documented,")
         print("  quantified approximation; the daily archive is not required")
         print("  for the Phase 1 conclusions.")
-    elif rel < 0.27:
+    elif rel < version_share:
         print(f"\n  BOUNDED BUT NOT NEGLIGIBLE. At {rel:.1%} it is smaller than the")
-        print("  26.9% version effect but the same order. Report it alongside")
+        print(f"  {version_share:.1%} version effect but the same order. Report it alongside")
         print("  every point estimate; recompute on daily data before any claim")
         print("  that turns on a difference of that size.")
     else:

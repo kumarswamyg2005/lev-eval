@@ -116,6 +116,9 @@ def main():
 
     df = pd.DataFrame({"lev": pred})
     df["in_kev"] = (kev_dates.reindex(pred.index) <= DN).fillna(False)
+    # full-cohort ratios for the progression printed below (computed, not typed in)
+    raw_over = float(levmod.lev(wide[m], first_idx[m], dn=DN).mean() / df["in_kev"].mean())
+    norm_over = float(df["lev"].mean() / df["in_kev"].mean())
     edges = calibration.BINS
     # Same binning as calibration.reliability(): digitize with the top edge
     # clipped INTO the last bucket.  pd.cut(right=False) would drop LEV == 1.0
@@ -237,8 +240,8 @@ def main():
               f"{sm['over'].max():.1f}x "
               f"({sm['over'].max() / sm['over'].min():.2f}x apart)")
     print("\n  progression of the bound:")
-    print("    17.2x  raw LEV vs observed KEV")
-    print("    12.6x  version-normalized LEV vs observed KEV")
+    print(f"    {raw_over:.1f}x  raw LEV vs observed KEV")
+    print(f"    {norm_over:.1f}x  version-normalized LEV vs observed KEV")
     for r in summary:
         print(f"    {r['over']:.1f}x  version-normalized LEV vs vendor-ceiling "
               f"implied rate ({r['method']})")
@@ -314,7 +317,7 @@ def main():
         print("  so part of the vendor spread is real exploitation difference")
         print("  rather than visibility. The ceiling is contaminated upward,")
         print("  implied completeness is too low, and true over-confidence lies")
-        print("  closer to 12.6x than to the vendor-ceiling figure above.")
+        print(f"  closer to {norm_over:.1f}x than to the vendor-ceiling figure above.")
     elif len(reinforcing):
         print("  VERDICT: BOUND HOLDS, and the visibility reading is REINFORCED.")
         print("  High-KEV-rate vendors score LOWER on "

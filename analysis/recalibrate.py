@@ -52,6 +52,8 @@ RESULTS = ROOT / "results" / "recalibration.json"
 DN = version_normalize.DN
 EPS = 1e-6
 RNG = np.random.default_rng(20260928)
+# separate stream for the curve bootstrap, so adding it leaves the CV folds unchanged
+CURVE_RNG, CURVE_BOOT = np.random.default_rng(1), 400
 
 
 # ------------------------------------------------------------ estimators
@@ -206,6 +208,10 @@ def run(name, x, y, age, born, split, prospective):
     table = pd.DataFrame({"LEV": grid,
                           "isotonic": predict_isotonic(iso_all, grid),
                           "Platt": predict_platt(platt_all, grid)})
+    # 95% bootstrap interval on the isotonic curve: resample CVEs, refit, re-read
+    bs = np.array([predict_isotonic(fit_isotonic(x[i], y[i]), grid)
+                   for i in (CURVE_RNG.integers(0, len(x), len(x)) for _ in range(CURVE_BOOT))])
+    table["iso_lo"], table["iso_hi"] = np.percentile(bs, [2.5, 97.5], axis=0)
     print("\n  the correction curve (isotonic, fitted on all data): what a LEV score means")
     print(table.to_string(index=False, float_format=lambda v: f"{v:.4f}"))
     return {"n": len(x), "positives": int(y.sum()), "cv": cv, "birth_split": birth,

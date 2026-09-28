@@ -80,7 +80,7 @@ def table(wide, first_idx, dn):
         # applies: it is data hygiene (EPSS retroactively scoring old CVEs),
         # not an EPSS-version restriction, so applying it to three rows and not
         # the fourth would make them incomparable.  Without it the row reads
-        # 0.2549 (+75%); with it, 0.1299 (-11%).
+        # 0.2550 (+75%); with it, 0.1299 (-11%).
         m = (not_backfill & live if since == "all"
              else born & live & (first_date >= pd.Timestamp(since)))
         got, got2 = scores[m].mean(), scores2[m].mean()
