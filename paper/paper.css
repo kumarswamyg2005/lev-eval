@@ -1,0 +1,37 @@
+/* Print stylesheet for the paper draft.  Same type system as the reports
+   (Source Serif 4 / IBM Plex Sans / IBM Plex Mono) so the set reads as one. */
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap");
+@page { size: A4; margin: 20mm 19mm 20mm; }
+:root { --ink:#16181D; --body:#2b2f36; --muted:#5D6673; --line:#D3D8DF; --sunk:#F1F3F6; --accent:#C1440E; }
+html, body { background:#fff; }
+body { font-family:"Source Serif 4",Georgia,"Times New Roman",serif; font-size:10.4pt;
+  line-height:1.5; color:var(--body); margin:0; -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  hyphens:auto; text-align:justify; }
+header#title-block-header { text-align:center; margin-bottom:16pt; padding-bottom:12pt;
+  border-bottom:1.5pt solid var(--ink); }
+h1.title { font-size:17pt; line-height:1.2; font-weight:600; color:var(--ink); margin:0 0 8pt;
+  text-wrap:balance; text-align:center; }
+p.author { font-family:"IBM Plex Sans",Helvetica,sans-serif; font-size:9.5pt; margin:0; color:var(--body); }
+p.date { font-family:"IBM Plex Mono",Menlo,monospace; font-size:8pt; color:var(--muted); margin:4pt 0 0; }
+h1, h2, h3 { color:var(--ink); text-align:left; text-wrap:balance; break-after:avoid; }
+h1 { font-size:12.5pt; font-weight:600; margin:16pt 0 6pt; }
+h2 { font-size:10.8pt; font-weight:600; margin:12pt 0 4pt; }
+p { margin:0 0 7pt; orphans:3; widows:3; }
+h1#abstract + p, h1#abstract ~ p:first-of-type { }
+section#abstract, h1#abstract { }
+strong { color:var(--ink); }
+ol, ul { margin:0 0 7pt; padding-left:17pt; }
+li { margin-bottom:3pt; }
+code { font-family:"IBM Plex Mono",Menlo,monospace; font-size:.86em; background:var(--sunk); padding:0 2pt; }
+table { border-collapse:collapse; margin:9pt auto 3pt; font-family:"IBM Plex Sans",Helvetica,sans-serif;
+  font-size:8.4pt; font-variant-numeric:tabular-nums; break-inside:avoid; text-align:left; }
+thead th { border-top:1.2pt solid var(--ink); border-bottom:.7pt solid var(--ink); font-weight:600;
+  padding:4pt 8pt; color:var(--ink); }
+td { padding:3pt 8pt; border-bottom:.4pt solid var(--line); }
+tbody tr:last-child td { border-bottom:1.2pt solid var(--ink); }
+table + p { font-size:8.8pt; color:var(--muted); text-align:center; margin-bottom:10pt; }
+figure { margin:10pt 0 10pt; break-inside:avoid; text-align:center; }
+figure img { max-width:100%; max-height:112mm; }
+figcaption { font-size:8.8pt; color:var(--muted); margin-top:4pt; text-align:center; }
+math[display="block"] { margin:6pt 0; }
+a { color:inherit; text-decoration:none; }

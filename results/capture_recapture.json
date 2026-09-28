@@ -1,0 +1,594 @@
+{
+  "population": {
+    "from": "2024-10-24",
+    "to": "2026-01-30",
+    "N": 54612
+  },
+  "lists": {
+    "CISA": 1656,
+    "SENSOR": 911,
+    "SOCIAL": 1957
+  },
+  "captures": {
+    "CISA": 236,
+    "SENSOR": 147,
+    "SOCIAL": 449
+  },
+  "overall_estimate": {
+    "label": "ALL LEV, 3-list log-linear",
+    "n": 54612,
+    "observed": 570,
+    "chao": 886.5558510638298,
+    "chao_ci": [
+      810.1326355844308,
+      987.3010744618781
+    ],
+    "f1": 345,
+    "f2": 188,
+    "identified": true,
+    "reason": "",
+    "N_hat": 1895.999999999941,
+    "ci": [
+      1326.2795454545296,
+      3292.524999999841
+    ],
+    "N_avg": 1895.4814491366494,
+    "model": [
+      "CISAxSENSOR",
+      "CISAxSOCIAL"
+    ],
+    "support_range": [
+      1895.999999999941,
+      1895.999999999941
+    ],
+    "alt": [
+      {
+        "N_hat": 1895.999999999941,
+        "aic": 53.31616059712654,
+        "model": [
+          "CISAxSENSOR",
+          "CISAxSOCIAL"
+        ]
+      },
+      {
+        "N_hat": 791.000000000007,
+        "aic": 68.79448178566412,
+        "model": [
+          "CISAxSOCIAL",
+          "SENSORxSOCIAL"
+        ]
+      },
+      {
+        "N_hat": 1149.919354838708,
+        "aic": 73.10493744999111,
+        "model": [
+          "CISAxSOCIAL"
+        ]
+      },
+      {
+        "N_hat": 607.3251533742337,
+        "aic": 109.60405188069576,
+        "model": [
+          "CISAxSENSOR",
+          "SENSORxSOCIAL"
+        ]
+      }
+    ]
+  },
+  "ladder": [
+    {
+      "truth": "CISA KEV",
+      "assumption": "KEV is complete",
+      "exploited": 236,
+      "over": 7.9125922396113655,
+      "over_lo": null,
+      "over_hi": null
+    },
+    {
+      "truth": "CISA or SENSOR",
+      "assumption": "honeypot sightings are real exploitation",
+      "exploited": 336,
+      "over": 5.557654073060363,
+      "over_lo": null,
+      "over_hi": null
+    },
+    {
+      "truth": "union of all lists",
+      "assumption": "every listed sighting is real",
+      "exploited": 570,
+      "over": 3.27609082201453,
+      "over_lo": null,
+      "over_hi": null
+    },
+    {
+      "truth": "Chapman(CISA, SENSOR)",
+      "assumption": "+ the two lists are independent",
+      "exploited": 729.75,
+      "over": 2.5589198609774337,
+      "over_lo": null,
+      "over_hi": null
+    },
+    {
+      "truth": "Chao lower bound",
+      "assumption": "closed population; robust to heterogeneity",
+      "exploited": 886.5558510638298,
+      "over": 2.1063216336652846,
+      "over_lo": 1.8913903943293904,
+      "over_hi": 2.305019803579642
+    },
+    {
+      "truth": "log-linear (AIC-selected)",
+      "assumption": "+ no three-way interaction",
+      "exploited": 1895.999999999941,
+      "over": 0.9849007218081964,
+      "over_lo": 0.5871557405247881,
+      "over_hi": 1.381588282760116
+    }
+  ],
+  "strata": {
+    "LEV [0.0, 0.1)": [
+      {
+        "truth": "CISA KEV",
+        "assumption": "KEV is complete",
+        "exploited": 29,
+        "over": 21.120551990939784,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "CISA or SENSOR",
+        "assumption": "honeypot sightings are real exploitation",
+        "exploited": 50,
+        "over": 12.249920154745073,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "union of all lists",
+        "assumption": "every listed sighting is real",
+        "exploited": 209,
+        "over": 2.9306029078337503,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "Chapman(CISA, SENSOR)",
+        "assumption": "+ the two lists are independent",
+        "exploited": 659.0,
+        "over": 0.929432485185514,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "Chao lower bound",
+        "assumption": "closed population; robust to heterogeneity",
+        "exploited": 922.0208333333334,
+        "over": 0.6642973624825039,
+        "over_lo": 0.44586784930222545,
+        "over_hi": 0.9488706928892361
+      },
+      {
+        "truth": "log-linear (AIC-selected)",
+        "assumption": "NOT IDENTIFIED: N_hat 242 below Chao lower bound 645 -- heterogeneity violates the model",
+        "exploited": null,
+        "over": null,
+        "over_lo": null,
+        "over_hi": null
+      }
+    ],
+    "LEV [0.1, 0.9)": [
+      {
+        "truth": "CISA KEV",
+        "assumption": "KEV is complete",
+        "exploited": 69,
+        "over": 9.111021231283491,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "CISA or SENSOR",
+        "assumption": "honeypot sightings are real exploitation",
+        "exploited": 96,
+        "over": 6.548546509985009,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "union of all lists",
+        "assumption": "every listed sighting is real",
+        "exploited": 137,
+        "over": 4.5887625179457,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "Chapman(CISA, SENSOR)",
+        "assumption": "+ the two lists are independent",
+        "exploited": 1959.0,
+        "over": 0.32090886419528375,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "Chao lower bound",
+        "assumption": "closed population; robust to heterogeneity",
+        "exploited": 184.34426229508196,
+        "over": 3.4102524110691164,
+        "over_lo": 2.841960278774078,
+        "over_hi": 3.8422264506486297
+      },
+      {
+        "truth": "log-linear (AIC-selected)",
+        "assumption": "NOT IDENTIFIED: models within 2 AIC span 143-2997",
+        "exploited": null,
+        "over": null,
+        "over_lo": null,
+        "over_hi": null
+      }
+    ],
+    "LEV [0.9, 1.0)": [
+      {
+        "truth": "CISA KEV",
+        "assumption": "KEV is complete",
+        "exploited": 138,
+        "over": 4.537791998930924,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "CISA or SENSOR",
+        "assumption": "honeypot sightings are real exploitation",
+        "exploited": 190,
+        "over": 3.295869978170882,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "union of all lists",
+        "assumption": "every listed sighting is real",
+        "exploited": 224,
+        "over": 2.795603999341373,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "Chapman(CISA, SENSOR)",
+        "assumption": "+ the two lists are independent",
+        "exploited": 288.5833333333333,
+        "over": 2.169963485483572,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "Chao lower bound",
+        "assumption": "closed population; robust to heterogeneity",
+        "exploited": 258.252427184466,
+        "over": 2.424818626797149,
+        "over_lo": 2.2031067739846444,
+        "over_hi": 2.571987073232246
+      },
+      {
+        "truth": "log-linear (AIC-selected)",
+        "assumption": "+ no three-way interaction",
+        "exploited": 301.8688524590159,
+        "over": 2.0744614449332346,
+        "over_lo": 1.7464421341605298,
+        "over_hi": 2.45859972973513
+      }
+    ]
+  },
+  "strata_estimates": {
+    "LEV [0.0, 0.1)": {
+      "label": "LEV [0.0, 0.1)",
+      "n": 52019,
+      "observed": 209,
+      "chao": 922.0208333333334,
+      "chao_ci": [
+        645.4999741558588,
+        1373.7164693435468
+      ],
+      "f1": 185,
+      "f2": 24,
+      "identified": false,
+      "reason": "N_hat 242 below Chao lower bound 645 -- heterogeneity violates the model",
+      "N_hat": 242.12499999999895,
+      "ci": [
+        202.74999999999912,
+        298.51249999999953
+      ],
+      "N_avg": 242.75414294391436,
+      "model": [
+        "CISAxSENSOR",
+        "SENSORxSOCIAL"
+      ],
+      "support_range": [
+        242.12499999999895,
+        242.12499999999895
+      ],
+      "alt": [
+        {
+          "N_hat": 242.12499999999895,
+          "aic": 32.301644198593785,
+          "model": [
+            "CISAxSENSOR",
+            "SENSORxSOCIAL"
+          ]
+        },
+        {
+          "N_hat": 246.4999999999987,
+          "aic": 35.86973973263164,
+          "model": [
+            "SENSORxSOCIAL"
+          ]
+        },
+        {
+          "N_hat": 381.24999999999864,
+          "aic": 72.87414574941663,
+          "model": [
+            "CISAxSENSOR"
+          ]
+        },
+        {
+          "N_hat": 394.86496711084135,
+          "aic": 74.23280181363614,
+          "model": []
+        }
+      ]
+    },
+    "LEV [0.1, 0.9)": {
+      "label": "LEV [0.1, 0.9)",
+      "n": 1957,
+      "observed": 137,
+      "chao": 184.34426229508196,
+      "chao_ci": [
+        163.61879577723298,
+        221.20663320099004
+      ],
+      "f1": 76,
+      "f2": 61,
+      "identified": false,
+      "reason": "models within 2 AIC span 143-2997",
+      "N_hat": 2997.000000000396,
+      "ci": [
+        830.0562499999597,
+        4131.149999999483
+      ],
+      "N_avg": 1458.4210507049922,
+      "model": [
+        "CISAxSOCIAL"
+      ],
+      "support_range": [
+        143.15,
+        2997.000000000396
+      ],
+      "alt": [
+        {
+          "N_hat": 2997.000000000396,
+          "aic": 34.60519533781619,
+          "model": [
+            "CISAxSOCIAL"
+          ]
+        },
+        {
+          "N_hat": 1203.0000000000177,
+          "aic": 34.646509586859565,
+          "model": [
+            "CISAxSENSOR",
+            "CISAxSOCIAL"
+          ]
+        },
+        {
+          "N_hat": 143.15,
+          "aic": 34.64650958685962,
+          "model": [
+            "CISAxSENSOR",
+            "SENSORxSOCIAL"
+          ]
+        },
+        {
+          "N_hat": 147.2,
+          "aic": 73.17177431414954,
+          "model": [
+            "SENSORxSOCIAL"
+          ]
+        }
+      ]
+    },
+    "LEV [0.9, 1.0)": {
+      "label": "LEV [0.9, 1.0)",
+      "n": 636,
+      "observed": 224,
+      "chao": 258.252427184466,
+      "chao_ci": [
+        243.47528895839105,
+        284.2419183886692
+      ],
+      "f1": 84,
+      "f2": 103,
+      "identified": true,
+      "reason": "",
+      "N_hat": 301.8688524590159,
+      "ci": [
+        256.92650355385484,
+        353.8512711864408
+      ],
+      "N_avg": 292.47624112991224,
+      "model": [
+        "CISAxSOCIAL"
+      ],
+      "support_range": [
+        269.60000000000167,
+        316.2857142857125
+      ],
+      "alt": [
+        {
+          "N_hat": 301.8688524590159,
+          "aic": 47.34924842377572,
+          "model": [
+            "CISAxSOCIAL"
+          ]
+        },
+        {
+          "N_hat": 269.60000000000167,
+          "aic": 47.61326480962401,
+          "model": [
+            "CISAxSOCIAL",
+            "SENSORxSOCIAL"
+          ]
+        },
+        {
+          "N_hat": 316.2857142857125,
+          "aic": 48.95742005779175,
+          "model": [
+            "CISAxSENSOR",
+            "CISAxSOCIAL"
+          ]
+        },
+        {
+          "N_hat": 229.16455696202533,
+          "aic": 75.41313051778508,
+          "model": [
+            "CISAxSENSOR",
+            "SENSORxSOCIAL"
+          ]
+        }
+      ]
+    }
+  },
+  "no_sensor": [
+    {
+      "truth": "CISA KEV",
+      "assumption": "KEV is complete",
+      "exploited": 236,
+      "over": 7.9125922396113655,
+      "over_lo": null,
+      "over_hi": null
+    },
+    {
+      "truth": "union of all lists",
+      "assumption": "every listed sighting is real",
+      "exploited": 485,
+      "over": 3.8502510691717164,
+      "over_lo": null,
+      "over_hi": null
+    },
+    {
+      "truth": "Chao lower bound",
+      "assumption": "closed population; robust to heterogeneity",
+      "exploited": 688.0625,
+      "over": 2.713956607936463,
+      "over_lo": 2.4585477301696708,
+      "over_hi": 2.939849411082774
+    },
+    {
+      "truth": "log-linear (AIC-selected)",
+      "assumption": "NOT IDENTIFIED: no model with residual df",
+      "exploited": null,
+      "over": null,
+      "over_lo": null,
+      "over_hi": null
+    }
+  ],
+  "sensitivity": {
+    "born before sensor window": [
+      {
+        "truth": "CISA KEV",
+        "assumption": "KEV is complete",
+        "exploited": 259,
+        "over": 16.87411875845733,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "CISA or SENSOR",
+        "assumption": "honeypot sightings are real exploitation",
+        "exploited": 418,
+        "over": 10.455494637417342,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "union of all lists",
+        "assumption": "every listed sighting is real",
+        "exploited": 630,
+        "over": 6.937137711810236,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "Chapman(CISA, SENSOR)",
+        "assumption": "+ the two lists are independent",
+        "exploited": 915.1904761904761,
+        "over": 4.775395802448068,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "Chao lower bound",
+        "assumption": "closed population; robust to heterogeneity",
+        "exploited": 990.6530612244899,
+        "over": 4.411632012763833,
+        "over_lo": 3.971993319144244,
+        "over_hi": 4.820817092319087
+      },
+      {
+        "truth": "log-linear (AIC-selected)",
+        "assumption": "+ no three-way interaction",
+        "exploited": 1883.5652173912836,
+        "over": 2.320278967825387,
+        "over_lo": 1.6091768568398575,
+        "over_hi": 3.0405333495637747
+      }
+    ],
+    "born inside sensor window": [
+      {
+        "truth": "CISA KEV",
+        "assumption": "KEV is complete",
+        "exploited": 236,
+        "over": 7.9125922396113655,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "CISA or SENSOR",
+        "assumption": "honeypot sightings are real exploitation",
+        "exploited": 336,
+        "over": 5.557654073060363,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "union of all lists",
+        "assumption": "every listed sighting is real",
+        "exploited": 570,
+        "over": 3.27609082201453,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "Chapman(CISA, SENSOR)",
+        "assumption": "+ the two lists are independent",
+        "exploited": 729.75,
+        "over": 2.5589198609774337,
+        "over_lo": null,
+        "over_hi": null
+      },
+      {
+        "truth": "Chao lower bound",
+        "assumption": "closed population; robust to heterogeneity",
+        "exploited": 886.5558510638298,
+        "over": 2.1063216336652846,
+        "over_lo": 1.8913903943293904,
+        "over_hi": 2.305019803579642
+      },
+      {
+        "truth": "log-linear (AIC-selected)",
+        "assumption": "+ no three-way interaction",
+        "exploited": 1895.999999999941,
+        "over": 0.9849007218081964,
+        "over_lo": 0.5931814843083716,
+        "over_hi": 1.362614917953483
+      }
+    ]
+  }
+}

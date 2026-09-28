@@ -93,6 +93,55 @@ than fetched.
 
 Combined Exploit-DB + Metasploit: **26,311 unique CVEs** with a public exploit.
 
+
+## Phase 2 exploitation lists
+
+Both feeds below are live and change daily, so each is **snapshotted into
+`data/vendor/` and committed**; the pipeline reads the snapshot, never the live
+API. `--refresh` on either loader re-pulls deliberately and invalidates the
+hash.
+
+### CIRCL Vulnerability-Lookup — "exploited" sightings
+
+| field | value |
+|---|---|
+| endpoint | `https://vulnerability.circl.lu/api/sighting/?type=exploited` (no auth) |
+| retrieved | 2026-09-28 |
+| raw sightings | 68,191 (68,107 with a valid CVE id) across 6,159 CVEs |
+| committed file | `data/vendor/circl_exploited.csv` (6.8 MB) |
+| SHA256 | `b7dc2ec6d3b068dc5e1791fe18cade244bbfaadd320eb7850116d5618d239300` |
+
+Each sighting is classified by its `source` field (`data/download_circl.py`):
+
+| class | sightings | CVEs | used as | why |
+|---|---|---|---|---|
+| sensor | 45,013 | 969 | **list SENSOR** | Shadowserver honeypot telemetry; independent mechanism |
+| social | 11,883 | 2,396 | **list SOCIAL** | Telegram and similar; 58% of shared CVEs appear here *before* CISA |
+| kev_catalog | 8,571 | 3,149 | excluded | contains **all 1,676** CISA KEV CVEs — a superset, not independent |
+| exploit_db | 2,461 | 2,226 | excluded | exploit availability, not exploitation |
+| report | 159 | 125 | excluded | too small to model |
+| other | 20 | 17 | excluded | unparseable source |
+
+### ENISA EUVD — known-exploited dump
+
+| field | value |
+|---|---|
+| endpoint | `https://euvdservices.enisa.europa.eu/api/kev/dump` (no auth) |
+| retrieved | 2026-09-28 |
+| entries | 1,740 (CISA KEV + EU KEV consolidated; each entry names its sources) |
+| EU KEV entries | 66, of which 55 also on CISA KEV |
+| committed file | `data/vendor/euvd_kev.json` (249 KB) |
+| SHA256 | `22d58b6385f3f6f76ac202fa6939a0f4ed9b8f77263373d0935d0599cabe2970` |
+
+**Not used as a list:** 88% of EU KEV's CISA overlap carries CISA's own
+`dateAdded`, so it is derivative rather than independent.
+
+### VulnCheck KEV — not yet retrieved
+
+Loader written (`data/download_vulncheck.py`), **untested** — it needs a free
+community token (`VULNCHECK_API_TOKEN`). When present, `capture_recapture.py`
+adds it automatically as a fourth list, rebuilt without CISA-sourced evidence.
+
 ## Environment
 
 Python 3.14.6; exact package versions in [requirements.lock](requirements.lock).

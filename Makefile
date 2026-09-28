@@ -7,13 +7,14 @@
 
 PY ?= ../.venv/bin/python
 
-.PHONY: reproduce fetch check clean-figures
+.PHONY: reproduce fetch check clean-figures paper
 
 fetch:
 	$(PY) data/download_epss.py
 	$(PY) data/download_kev.py
 	$(PY) data/download_nvd.py
-	@echo "Exploit-DB and Metasploit are pinned in data/vendor/ -- not fetched."
+	$(PY) data/download_vulncheck.py
+	@echo "Exploit-DB, Metasploit, CIRCL and EUVD are pinned in data/vendor/ -- not fetched."
 	@echo "Run 'python data/download_exploits.py --refresh' to update them."
 
 check:
@@ -30,8 +31,14 @@ reproduce: check
 	$(PY) analysis/top_bucket.py
 	$(PY) analysis/vendor_ceiling.py
 	$(PY) analysis/sampling_error.py
+	$(PY) analysis/leakage.py
+	$(PY) analysis/capture_recapture.py
+	$(PY) analysis/recalibrate.py
 	@echo
 	@echo "figures/: $$(ls figures | tr '\n' ' ')"
 
 clean-figures:
 	rm -f figures/*.png
+
+paper:
+	bash paper/build.sh
