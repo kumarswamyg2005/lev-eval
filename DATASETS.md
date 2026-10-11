@@ -57,7 +57,7 @@ list. Beyond the CISA containment above, the audit found a second one:
 all 969 CIRCL SENSOR CVEs appear in VulnCheck's Shadowserver subset.** The
 rebuilt list therefore drops Shadowserver-hosted reports as well as CISA's:
 4,815 CVEs remain (2,912 under a strict sensor-or-two-sources rule). Results
-are in README "Phase 2 results".
+are in docs/RESULTS.md "Phase 2 results".
 
 ## Third correction: circularity with EPSS itself
 
@@ -67,7 +67,7 @@ validating LEV against GreyNoise or Shadowserver is partly circular.
 
 Worse, and this hits Phase 1 directly: **CISA KEV is an input *feature* to
 EPSS v3** — "Public vulnerability lists (3 features): CISA KEV, Google Project
-Zero, Trend Micro ZDI". See README threats 41–43 and `analysis/leakage.py`.
+Zero, Trend Micro ZDI". See docs/THREATS.md threats 41–43 and `analysis/leakage.py`.
 Measured validly in `analysis/leakage.py`: at the listing date, against non-KEV CVEs with the same starting score, the median KEV CVE's EPSS does not move, but the upper quartile rises at least 2.85x more than controls. Before CISA listed them, only 15% of KEV members with a pre-listing history had LEV >= 0.5 (median 0.005, against 1.0 afterwards). *An earlier version reported 11.9x -> 32.7x on a 'leak-free' cohort; that cohort was built by deleting KEV members only, which selects on the outcome, and the figure is withdrawn.*
 
 VulnCheck is not, on available evidence, an EPSS labelling source — a further
@@ -173,4 +173,4 @@ June 2025 onward for LEV specifically.
 
 ## Re-running this search
 
-Prompt in `RESEARCH-PROMPT.md`.
+Prompt in `talk/RESEARCH-PROMPT.md`.

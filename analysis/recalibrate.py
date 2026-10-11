@@ -25,7 +25,13 @@ Validation -- the part that makes it "proper":
     deployment situation (a correction fitted on the past, applied to new
     CVEs) and it exposes drift, which random splits hide.
   * 5-fold cross-validation, reported alongside for comparison.
-All metrics are on held-out data only.
+All metrics are on held-out data only.  The prospective pred/obs ratios
+carry a 95% bootstrap interval over test CVEs (maps held fixed).
+
+LEV variant.  The correction is fitted on LEV from VERSION-NORMALIZED EPSS
+(the paper's choice), and the uncorrected baseline row is that same LEV,
+labelled "LEV (version-normalized)".  A "LEV (raw)" row, LEV from the
+un-normalized EPSS for the same CVEs, is reported beside it for disclosure.
 
 Run: python analysis/recalibrate.py
 """
@@ -54,6 +60,9 @@ EPS = 1e-6
 RNG = np.random.default_rng(20260928)
 # separate stream for the curve bootstrap, so adding it leaves the CV folds unchanged
 CURVE_RNG, CURVE_BOOT = np.random.default_rng(1), 400
+# and another for the prospective pred/obs interval, for the same reason
+PROSP_RNG, PROSP_BOOT = np.random.default_rng(2), 1000
+BASE, BASE_RAW = "LEV (version-normalized)", "LEV (raw)"
 
 
 # ------------------------------------------------------------ estimators
@@ -151,57 +160,73 @@ def metrics(p, y):
             "ratio": float(p.mean() / y.mean()) if y.mean() else np.nan}
 
 
-def evaluate_split(x_tr, y_tr, a_tr, x_te, y_te, a_te):
+def evaluate_split(x_tr, y_tr, a_tr, x_te, y_te, a_te, xr_te):
+    """Fit the maps on the training split; score them and both uncorrected
+    baselines (xr_te = raw LEV of the test CVEs) on the test split."""
     iso, platt = fit_isotonic(x_tr, y_tr), fit_platt(x_tr, y_tr)
     pa = fit_platt_age(x_tr, a_tr, y_tr)
-    return {"raw LEV": metrics(x_te, y_te),
-            "isotonic": metrics(predict_isotonic(iso, x_te), y_te),
-            "Platt": metrics(predict_platt(platt, x_te), y_te),
-            "Platt+age": metrics(predict_platt_age(pa, x_te, a_te), y_te)}, iso, platt
+    preds = {BASE: x_te, BASE_RAW: xr_te,
+             "isotonic": predict_isotonic(iso, x_te),
+             "Platt": predict_platt(platt, x_te),
+             "Platt+age": predict_platt_age(pa, x_te, a_te)}
+    return {m: metrics(p, y_te) for m, p in preds.items()}, iso, platt, preds
 
 
-def cross_validate(x, y, age, k=5):
+def ratio_ci(preds, y):
+    """95% bootstrap interval on pred/obs: resample test CVEs, maps fixed."""
+    idx = [PROSP_RNG.integers(0, len(y), len(y)) for _ in range(PROSP_BOOT)]
+    return {m: [float(v) for v in np.percentile(
+                [p[i].mean() / y[i].mean() for i in idx], [2.5, 97.5])]
+            for m, p in preds.items()}
+
+
+def cross_validate(x, y, age, xr, k=5):
     folds = RNG.permutation(len(x)) % k
     agg = {}
     for f in range(k):
         tr, te = folds != f, folds == f
-        res, _, _ = evaluate_split(x[tr], y[tr], age[tr], x[te], y[te], age[te])
+        res, *_ = evaluate_split(x[tr], y[tr], age[tr], x[te], y[te], age[te], xr[te])
         for m, v in res.items():
             for s, val in v.items():
                 agg.setdefault(m, {}).setdefault(s, []).append(val)
     return {m: {s: float(np.mean(v)) for s, v in d.items()} for m, d in agg.items()}
 
 
-def report(title, res):
+def report(title, res, ci=None):
     print(f"\n  {title}")
-    print(f"    {'':<10}{'Brier':>10}{'ECE':>10}{'log-loss':>10}{'pred/obs':>10}")
+    print(f"    {'':<26}{'Brier':>10}{'ECE':>10}{'log-loss':>10}{'pred/obs':>10}")
     for m, v in res.items():
-        print(f"    {m:<10}{v['brier']:>10.5f}{v['ece']:>10.5f}"
-              f"{v['logloss']:>10.4f}{v['ratio']:>9.2f}x")
+        c = f"  [{ci[m][0]:.2f}, {ci[m][1]:.2f}]" if ci else ""
+        print(f"    {m:<26}{v['brier']:>10.5f}{v['ece']:>10.5f}"
+              f"{v['logloss']:>10.4f}{v['ratio']:>9.2f}x{c}")
 
 
-def run(name, x, y, age, born, split, prospective):
+def run(name, x, y, age, born, split, prospective, xr):
     """Three validation schemes, all scored on held-out CVEs only.
 
     prospective = (x_tr, y_tr, age_tr) fitted at an EARLIER analysis date, on
     CVEs disjoint from the test set; the test set is scored at the final date.
     That is the deployment situation: a correction learned last year, applied
-    to CVEs it has never seen.
+    to CVEs it has never seen.  xr = raw LEV of the same CVEs, for the
+    disclosed raw baseline row only.
     """
     print(f"\n{'=' * 82}\nTARGET: {name}   (N={len(x):,}, positives={int(y.sum())}, "
           f"base rate {y.mean():.4f})\n{'=' * 82}")
-    cv = cross_validate(x, y, age)
+    cv = cross_validate(x, y, age, xr)
     report("A. 5-fold cross-validation -- in-distribution, the optimistic case", cv)
 
     tr, te = born < split, born >= split
-    birth, _, _ = evaluate_split(x[tr], y[tr], age[tr], x[te], y[te], age[te])
+    birth, *_ = evaluate_split(x[tr], y[tr], age[tr], x[te], y[te], age[te], xr[te])
     report(f"B. birth-cohort split at {split.date()} -- train {int(tr.sum()):,}, "
            f"test {int(te.sum()):,}; ages do not overlap", birth)
 
     xp, yp, ap, test_mask = prospective
-    prosp, _, _ = evaluate_split(xp, yp, ap, x[test_mask], y[test_mask], age[test_mask])
+    prosp, _, _, preds = evaluate_split(xp, yp, ap, x[test_mask], y[test_mask],
+                                        age[test_mask], xr[test_mask])
+    prosp_ci = ratio_ci(preds, y[test_mask])
     report(f"C. PROSPECTIVE -- fitted one year earlier on {len(xp):,} CVEs "
-           f"({int(yp.sum())} pos), applied to {int(test_mask.sum()):,} unseen", prosp)
+           f"({int(yp.sum())} pos), applied to {int(test_mask.sum()):,} unseen "
+           f"({int(y[test_mask].sum())} pos); [95% bootstrap on pred/obs]", prosp, prosp_ci)
 
     iso_all, platt_all = fit_isotonic(x, y), fit_platt(x, y)
     grid = np.array([0.01, 0.05, 0.1, 0.3, 0.5, 0.7, 0.9, 0.99, 1.0])
@@ -215,7 +240,10 @@ def run(name, x, y, age, born, split, prospective):
     print("\n  the correction curve (isotonic, fitted on all data): what a LEV score means")
     print(table.to_string(index=False, float_format=lambda v: f"{v:.4f}"))
     return {"n": len(x), "positives": int(y.sum()), "cv": cv, "birth_split": birth,
-            "prospective": prosp, "curve": table.to_dict(orient="list")}, iso_all, platt_all
+            "prospective": prosp, "prospective_ratio_ci": prosp_ci,
+            "prospective_test_n": int(test_mask.sum()),
+            "prospective_test_positives": int(y[test_mask].sum()),
+            "curve": table.to_dict(orient="list")}, iso_all, platt_all
 
 
 def main():
@@ -235,8 +263,8 @@ def main():
     lists_tr = cr.exploitation_lists(DN_TR)    # only what was known at DN_TR
     age = lambda idx, dn: (dn - fd[idx]).dt.days.to_numpy().astype(float)
 
-    def lev_at(mask, dn):
-        return levmod.lev(norm_wide[mask], first_idx[mask], dn=dn)
+    def lev_at(mask, dn, w=norm_wide):
+        return levmod.lev(w[mask], first_idx[mask], dn=dn)
 
     # ------------------------------------------------ target 1: CISA KEV
     m1 = calibration.cohort(wide, first_idx, DN)
@@ -248,7 +276,8 @@ def main():
     test1 = ~x1.index.isin(xp1.index)          # CVEs the old model never saw
     r1, iso1, pl1 = run("CISA KEV", x1.to_numpy(), y1, age(x1.index, DN),
                         fd[m1].to_numpy(), pd.Timestamp("2024-07-01"),
-                        (xp1.to_numpy(), yp1, age(xp1.index, DN_TR), test1))
+                        (xp1.to_numpy(), yp1, age(xp1.index, DN_TR), test1),
+                        lev_at(m1, DN, wide).to_numpy())
 
     # ------------------- target 2: union of independent lists, sensor window
     born_ok = nbf & (fd >= cr.SENSOR_START)
@@ -264,41 +293,60 @@ def main():
     test2 = ~x2.index.isin(xp2.index)
     r2, iso2, pl2 = run("UNION of " + " + ".join(use), x2.to_numpy(), y2,
                         age(x2.index, DN), fd[m2].to_numpy(), pd.Timestamp("2025-06-01"),
-                        (xp2.to_numpy(), yp2, age(xp2.index, DN_TR), test2))
+                        (xp2.to_numpy(), yp2, age(xp2.index, DN_TR), test2),
+                        lev_at(m2, DN, wide).to_numpy())
 
     # ------------------------------------------------------------- figure
-    fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.6))
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4.6),
+                             gridspec_kw={"width_ratios": [1, 1, 1]})
     grid = np.linspace(0, 1, 400)
     ax = axes[0]
     ax.plot([0, 1], [0, 1], "--", color="gray", lw=1, label="LEV taken at face value")
     ax.plot(grid, predict_isotonic(iso1, grid), color="#365c8d", lw=2,
             label="corrected to CISA KEV")
     ax.plot(grid, predict_isotonic(iso2, grid), color="#c1440e", lw=2,
-            label="corrected to union of lists")
-    ax.set_xlabel("LEV score"); ax.set_ylabel("probability to read into it")
+            label="corrected to union of primary lists")
+    ax.set_xlabel("LEV score (version-normalized EPSS)")
+    ax.set_ylabel("probability to read into it")
     ax.set_title("The correction curve (isotonic)"); ax.grid(alpha=.3)
     ax.legend(fontsize=8)
 
-    ax = axes[1]
-    methods = ["raw LEV", "isotonic", "Platt", "Platt+age"]
+    # Right: does it transfer?  Both targets, every scheme; the prospective
+    # bars carry their bootstrap interval.
+    methods = [BASE, "isotonic", "Platt", "Platt+age"]
+    labels = ["LEV\n(version-normalized)", "isotonic", "Platt", "Platt+age"]
     schemes = [("cv", "5-fold CV"), ("birth_split", "birth split"),
                ("prospective", "prospective")]
     w = 0.26
     cols = ["#9aa7b8", "#365c8d", "#c1440e"]
-    for i, (key, lab) in enumerate(schemes):
-        vals = [r1[key][m]["ratio"] for m in methods]
-        ax.bar(np.arange(4) + (i - 1) * w, vals, w, color=cols[i], label=lab)
-    ax.axhline(1, color="black", lw=1)
-    ax.set_xticks(range(4)); ax.set_xticklabels(methods)
-    ax.set_yscale("log"); ax.set_ylabel("predicted / observed, held-out (1 = calibrated)")
-    ax.set_title("Does the correction transfer? (CISA KEV target)")
-    ax.grid(alpha=.3, axis="y"); ax.legend(fontsize=8)
+    for ax, (r, tname) in zip(axes[1:], [(r1, "CISA KEV"),
+                                         (r2, "union of primary lists")]):
+        for i, (key, lab) in enumerate(schemes):
+            vals = np.array([r[key][m]["ratio"] for m in methods])
+            err = None
+            if key == "prospective":
+                ci = np.array([r["prospective_ratio_ci"][m] for m in methods]).T
+                err = np.array([vals - ci[0], ci[1] - vals])
+            ax.bar(np.arange(4) + (i - 1) * w, vals, w, color=cols[i], label=lab,
+                   yerr=err, capsize=2, error_kw={"elinewidth": 1})
+        ax.axhline(1, color="black", lw=1)
+        ax.set_xticks(range(4)); ax.set_xticklabels(labels, fontsize=8)
+        ax.set_yscale("log")
+        ax.set_title(f"Does it transfer? Target: {tname}")
+        ax.grid(alpha=.3, axis="y"); ax.legend(fontsize=8)
+    axes[1].set_ylabel("predicted / observed, held-out (1 = calibrated)")
+    axes[2].sharey(axes[1])
     FIGURE.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(FIGURE, dpi=150, bbox_inches="tight")
     print(f"\nwrote {FIGURE}")
 
     RESULTS.parent.mkdir(parents=True, exist_ok=True)
-    RESULTS.write_text(json.dumps({"KEV": r1, "UNION": r2,
+    RESULTS.write_text(json.dumps({"lev_variant": "version-normalized",
+                                   "lev_variant_note": (
+                                       f"maps are fitted on, and '{BASE}' is, LEV from "
+                                       f"version-normalized EPSS; '{BASE_RAW}' is LEV "
+                                       "from raw EPSS for the same CVEs"),
+                                   "KEV": r1, "UNION": r2,
                                    "prospective_fit_date": str(DN_TR.date())},
                                   indent=2, default=float))
     print(f"wrote {RESULTS}")

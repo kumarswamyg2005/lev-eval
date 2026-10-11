@@ -8,6 +8,7 @@ Run: python analysis/validate.py
 """
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -33,6 +34,13 @@ TOLERANCE = 0.30  # flag anything off by more than 30% relative
 # would overstate every row.  ASSUMPTION: dn = 2025-03-01 approximates the
 # paper's analysis date; the exact one is not stated in the paper.
 PAPER_DN = pd.Timestamp("2025-03-01")
+
+ROOT = Path(__file__).resolve().parent.parent
+GRID_JSON = ROOT / "results" / "validate_dn_grid.json"
+# Forking-paths check: dn and the backfill filter were both free choices, so
+# report reproduction error over a grid of dn with and without the filter
+# rather than at the one date the headline uses.
+DN_GRID = pd.date_range("2024-09-01", "2025-09-01", freq="MS")
 
 
 def build(since=None):
@@ -93,6 +101,31 @@ def table(wide, first_idx, dn):
     return pd.DataFrame(rows)
 
 
+def dn_grid(wide, first_idx, dns=DN_GRID):
+    """Relative error per Table 5 row at each dn, with and without the
+    backfill filter.  LEV only (LEV2 is not in Table 5's headline column)."""
+    dates = wide.columns
+    first_date = pd.Series(dates.to_numpy()[first_idx.to_numpy()], index=wide.index)
+    id_year = pd.Series(wide.index.astype(str).str.slice(4, 8).astype(int),
+                        index=wide.index)
+    filt = {"with_filter": (first_date.dt.year - id_year) <= 1,
+            "no_filter": pd.Series(True, index=wide.index)}
+    rows = []
+    for dn in dns:
+        scores = levmod.lev(wide, first_idx, dn=dn)
+        live = first_date <= dn
+        for fname, nbf in filt.items():
+            born = (first_date > dates[0]) & nbf
+            for since, expected in NIST.items():
+                m = (nbf & live if since == "all"
+                     else born & live & (first_date >= pd.Timestamp(since)))
+                got = float(scores[m].mean())
+                rows.append({"dn": str(dn.date()), "filter": fname,
+                             "since": since, "n": int(m.sum()), "nist": expected,
+                             "ours": got, "rel_err": (got - expected) / expected})
+    return pd.DataFrame(rows)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dn", default=None,
@@ -110,6 +143,32 @@ def main():
         print(t.to_string(index=False))
         if dn == dns[0]:   # only the paper-era date is the actual check
             ok = (t["ok"] == "PASS").all()
+
+    if not args.dn:
+        g = dn_grid(wide, first_idx)
+        piv = g.pivot_table(index="dn", columns=["filter", "since"],
+                            values="rel_err")
+        print(f"\n=== reproduction error vs dn (relative, LEV) ===")
+        print(piv.to_string(float_format=lambda v: f"{v:+.0%}"))
+        mad = g.assign(a=g.rel_err.abs()).groupby(["filter", "dn"])["a"]
+        summ = pd.DataFrame({"mad": mad.mean(), "max_abs": mad.max()}).reset_index()
+        print("\n  mean / max |error| over the four rows:")
+        print(summ.pivot(index="dn", columns="filter",
+                         values=["mad", "max_abs"]).to_string(
+            float_format=lambda v: f"{v:.0%}"))
+        for f in ("with_filter", "no_filter"):
+            s_ = summ[summ["filter"] == f]
+            within = s_[s_["max_abs"] <= TOLERANCE]["dn"].tolist()
+            best = s_.loc[s_["mad"].idxmin()]
+            print(f"  {f}: all rows within {TOLERANCE:.0%} at {len(within)} of "
+                  f"{len(s_)} dates ({', '.join(within) if within else 'none'}); "
+                  f"lowest mean error {best['mad']:.0%} at {best['dn']}")
+        GRID_JSON.parent.mkdir(parents=True, exist_ok=True)
+        GRID_JSON.write_text(json.dumps(
+            {"rows": g.to_dict("records"), "summary": summ.to_dict("records"),
+             "tolerance": TOLERANCE, "headline_dn": str(PAPER_DN.date())},
+            indent=1, default=lambda o: o.item() if hasattr(o, "item") else str(o)))
+        print(f"  wrote {GRID_JSON}")
 
     print("\nThe dn = today table is context, not a check: LEV grows with the "
           "length of the observation window, so it is expected to run high.")

@@ -16,6 +16,7 @@ Run: python analysis/version_normalize.py
 """
 
 import gzip
+import json
 import sys
 from pathlib import Path
 
@@ -37,6 +38,18 @@ BOUNDARY = pd.Timestamp("2025-03-17")
 # Sensitivity check: a second v3-era reference, 6 weeks earlier.
 REF_ALT = pd.Timestamp("2025-02-01")
 DN = pd.Timestamp("2026-08-01")
+RESULTS = ROOT / "results" / "version_normalize.json"
+
+# STEP-ONLY normalization.  normalize() maps every post-boundary day onto the
+# 2025-03-16 distribution, which removes the one-day retraining step AND every
+# later corpus-wide movement (16 months of within-v4 drift, plus v5).  The
+# step-only variant fits one quantile map per boundary on the CVEs present in
+# both bracketing daily files -- one day apart, so essentially no organic
+# drift -- and holds it fixed thereafter, so later drift passes through.
+# (Measured: the two agree within ~2 points; see results/version_normalize.json.)
+V5_BOUNDARY = pd.Timestamp("2026-06-15")       # v2026.06.15 first appears
+STEPS = [(REF_DATE, BOUNDARY),                 # v3 -> v4 (2025-03-16 / 03-17)
+         (pd.Timestamp("2026-06-14"), V5_BOUNDARY)]   # v4 -> v5
 
 
 def read_scores(day, with_percentile=True):
@@ -81,6 +94,80 @@ def normalize(wide, ref_day=REF_DATE, boundary=BOUNDARY):
         # CVEs absent from that day's file keep their forward-filled raw score;
         # they are a fraction of a percent (see analysis/epss_drift.py step 5).
         out[d] = mapped.where(pct.notna(), out[d]).astype("float32")
+    return out
+
+
+def step_map(before_day, after_day, grid=4001, restrict=None):
+    """Quantile map new-model score -> old-model score, fitted ONCE on the CVEs
+    present in both bracketing daily files (optionally only those in
+    `restrict`).  Returns (xp, fp, n_common).
+
+    Fitted on the whole corpus, the map removes the corpus-wide RESCALING.
+    Fitted on one cohort, it also removes that cohort's re-ranking relative to
+    the corpus (v4 moved young CVEs up: rank correlation across the step is
+    only ~0.5 for the calibration cohort), i.e. it treats the cohort's entire
+    one-day change as artifact -- an upper bound."""
+    a = read_scores(before_day, False)["epss"]
+    b = read_scores(after_day, False)["epss"]
+    common = a.index.intersection(b.index)
+    if restrict is not None:
+        common = common.intersection(restrict)
+    q = np.linspace(0, 1, grid)
+    xp = np.quantile(b.reindex(common).to_numpy(float), q)
+    fp = np.quantile(a.reindex(common).to_numpy(float), q)
+    # tied new scores (EPSS is rounded) -> average the old scores they cover
+    ux, inv = np.unique(xp, return_inverse=True)
+    uf = np.bincount(inv, weights=fp) / np.bincount(inv)
+    return ux, uf, len(common)
+
+
+_PRESENT = {}
+
+
+def _present(day, index):
+    """Boolean mask: which CVEs of `index` appear in that day's file."""
+    key = (pd.Timestamp(day), len(index), index[0], index[-1])
+    if key not in _PRESENT:
+        _PRESENT[key] = index.isin(read_scores(day, False).index)
+    return _PRESENT[key]
+
+
+def normalize_step(wide, steps=STEPS, which=None, restrict=None):
+    """Copy of `wide` with each post-boundary score passed through the fixed
+    per-boundary maps (newest first, so a v5 score goes v5 -> v4 -> v3).
+    `which` = indices into `steps` to undo (default all).  normalize() is left
+    unchanged for its other callers."""
+    which = range(len(steps)) if which is None else which
+    maps = {i: step_map(*steps[i], restrict=restrict)[:2] for i in which}
+    out = wide.copy()
+    for d in wide.columns:
+        active = [i for i in which if d >= steps[i][1]]
+        if not active:
+            continue
+        v = wide[d].to_numpy(float)
+        for i in sorted(active, reverse=True):
+            v = np.interp(v, *maps[i])
+        # CVEs absent from that day's file keep their forward-filled raw
+        # score, as in normalize()
+        out[d] = np.where(_present(d, wide.index), v, wide[d].to_numpy(float))
+    return out
+
+
+def one_day_step(before_day, after_day, cohorts):
+    """Mean EPSS on the common CVE set of two daily files, per cohort index."""
+    a = read_scores(before_day, False)["epss"]
+    b = read_scores(after_day, False)["epss"]
+    common = a.index.intersection(b.index)
+    out = {}
+    for name, idx in cohorts.items():
+        c = common if idx is None else common.intersection(idx)
+        ma, mb = float(a.reindex(c).mean()), float(b.reindex(c).mean())
+        ra = a.reindex(c).rank(pct=True)
+        rb = b.reindex(c).rank(pct=True)
+        out[name] = {"n": len(c), "before": ma, "after": mb, "ratio": mb / ma,
+                     "median_before": float(a.reindex(c).median()),
+                     "median_after": float(b.reindex(c).median()),
+                     "rank_spearman": float(ra.corr(rb))}
     return out
 
 
@@ -163,12 +250,57 @@ def main():
           f"({REF_DATE.date()}) vs {alt.mean():.5f} ({REF_ALT.date()}), "
           f"{abs(alt.mean() / lev_norm.mean() - 1):.1%} apart")
 
+    # ------------------------------------------ 2b. step-only normalization
+    print("\n=== 2b. STEP-ONLY normalization (fixed map per boundary) ===")
+    sub = wide.loc[idx]
+    step_all = levmod.lev(normalize_step(sub), first_idx[m], dn=DN)
+    step_v4 = levmod.lev(normalize_step(sub, which=[0]), first_idx[m], dn=DN)
+    step_v5 = levmod.lev(normalize_step(sub, which=[1]), first_idx[m], dn=DN)
+    step_coh = levmod.lev(normalize_step(sub, restrict=idx), first_idx[m], dn=DN)
+    variants = {"raw": lev_raw, "full_percentile": lev_norm,
+                "step_only_v4_and_v5": step_all, "step_only_v4": step_v4,
+                "step_only_v5": step_v5, "step_only_cohort_fit": step_coh}
+    artifact = {}
+    for k, v in variants.items():
+        artifact[k] = {"mean": float(v.mean()),
+                       "mass_reduction": 1 - float(v.sum() / lev_raw.sum()),
+                       "frac>=0.9": float((v >= 0.9).mean())}
+        print(f"  {k:<20s} mean LEV {v.mean():.5f}  reduction vs raw "
+              f"{artifact[k]['mass_reduction']:+.1%}  frac>=0.9 "
+              f"{artifact[k]['frac>=0.9']:.4f}")
+    lo_, hi_ = (artifact["step_only_v4_and_v5"]["mass_reduction"],
+                artifact["full_percentile"]["mass_reduction"])
+    coh_ = artifact["step_only_cohort_fit"]["mass_reduction"]
+    print(f"  corpus-wide rescaling removed: {lo_:.1%} (step-only, fixed maps) vs "
+          f"{hi_:.1%} (full percentile mapping, also removes later drift)")
+    print(f"  treating the cohort's whole one-day change as artifact (cohort-fit "
+          f"step map): {coh_:.1%}")
+
+    print("\n  one-day steps on a common CVE set (same CVEs, consecutive days):")
+    fd_all = pd.Series(dates.to_numpy()[first_idx.to_numpy()], index=wide.index)
+    iy_all = pd.Series(wide.index.astype(str).str.slice(4, 8).astype(int),
+                       index=wide.index)
+    lo3, hi3 = dn_sweep.COHORTS["v3 (first EPSS 2023-03-07..2023-09-30)"]
+    v3c = wide.index[((fd_all.dt.year - iy_all) <= 1)
+                     & fd_all.between(pd.Timestamp(lo3), pd.Timestamp(hi3))]
+    steps_out = {}
+    for label, (b, a) in zip(("v3->v4", "v4->v5"), STEPS):
+        r = one_day_step(b, a, {"sweep_cohort_v3": v3c,
+                                "calibration_cohort": idx, "all_common": None})
+        steps_out[label] = {"before": str(b.date()), "after": str(a.date()), **r}
+        for name, x in r.items():
+            print(f"    {label} {b.date()}->{a.date()} {name:<19s} n={x['n']:>7,} "
+                  f"mean {x['before']:.5f} -> {x['after']:.5f} ({x['ratio']:.2f}x)  "
+                  f"median {x['median_before']:.5f} -> {x['median_after']:.5f}  "
+                  f"rank corr {x['rank_spearman']:.3f}")
+
     # -------------------------------------------------- 3. calibration redo
     in_kev = set(kev.loc[kev["kev_date"] <= DN, "cve"])
     y = lev_raw.index.isin(in_kev).astype(float)
     print("\n=== 3. calibration under each variant ===")
     tables = {}
-    for label, p in [("LEV_raw", lev_raw), ("LEV_norm", lev_norm)]:
+    for label, p in [("LEV_raw", lev_raw), ("LEV_norm", lev_norm),
+                     ("LEV_step", step_all), ("LEV_step_cohort", step_coh)]:
         tab, brier, ece = calibration.evaluate(p.to_numpy(), y)
         tables[label] = (tab, brier, ece, float(p.mean()))
         print(f"\n--- {label} ---")
@@ -179,6 +311,11 @@ def main():
               f"mean pred {p.mean():.5f} / obs {y.mean():.5f} "
               f"= {p.mean() / y.mean():.1f}x")
 
+    lo_k, hi_k = calibration.poisson_ci(int(y.sum()))
+    calib_out = {k: {"mean": v[3], "ratio": v[3] / y.mean(),
+                     "ratio_lo": v[3] * len(y) / hi_k,
+                     "ratio_hi": v[3] * len(y) / lo_k,
+                     "brier": v[1], "ece": v[2]} for k, v in tables.items()}
     r_over = tables["LEV_raw"][3] / y.mean()
     n_over = tables["LEV_norm"][3] / y.mean()
     shrink = 1 - n_over / r_over
@@ -208,9 +345,13 @@ def main():
     sm = ((fd.dt.year - iy) <= 1) & fd.between(pd.Timestamp(lo), pd.Timestamp(hi))
     dns = [d for d in dates if d >= dn_sweep.SWEEP_START]
     kev_dates = kev.drop_duplicates("cve").set_index("cve")["kev_date"]
-    for label, w in [("raw", wide), ("normalized", norm_wide)]:
+    sweep_out = {}
+    step_sm = normalize_step(wide.loc[sm])
+    for label, w, fi, mk in [("raw", wide, first_idx, sm),
+                             ("normalized", norm_wide, first_idx, sm),
+                             ("step_only", step_sm, first_idx[sm], sm[sm])]:
         print(f"\n--- sweep, {label} ---")
-        sw = dn_sweep.sweep(w, first_idx, sm, kev_dates, dns)
+        sw = dn_sweep.sweep(w, fi, mk, kev_dates, dns)
         t = np.arange(1, len(sw) + 1, dtype=float)
         fits = dn_sweep.fit_all(t, sw["mean_lev"].to_numpy())
         rank = sorted(fits.items(), key=lambda kv: kv[1]["aic"])
@@ -219,6 +360,9 @@ def main():
         margin = rank[1][1]["aic"] - rank[0][1]["aic"]
         print(f"    BEST: {rank[0][0]} (dAIC {margin:.2f}), "
               f"mean LEV {sw['mean_lev'].iloc[0]:.5f} -> {sw['mean_lev'].iloc[-1]:.5f}")
+        sweep_out[label] = {"aic": {k: v["aic"] for k, v in fits.items()},
+                            "first": float(sw["mean_lev"].iloc[0]),
+                            "last": float(sw["mean_lev"].iloc[-1])}
 
     # ----------------------------------------------------- 5. Table 5 redo
     print("\n=== 5. CSWP 41 Table 5 under each variant and dn ===")
@@ -266,7 +410,19 @@ def main():
     print("  It also partially bounds the threat that percentile mapping strips")
     print("  genuine v4 signal: if it did so heavily, deviations would grow.")
 
-    pd.to_pickle({"raw": lev_raw, "norm": lev_norm, "v3only": lev_v3}, CACHE)
+    RESULTS.parent.mkdir(parents=True, exist_ok=True)
+    RESULTS.write_text(json.dumps({
+        "dn": str(DN.date()), "cohort_n": len(idx),
+        "steps": [[str(b.date()), str(a.date())] for b, a in STEPS],
+        "lev_variants": artifact,
+        "artifact_range": {"step_only": lo_, "full_percentile": hi_,
+                           "step_only_cohort_fit": coh_},
+        "one_day_steps": steps_out, "calibration": calib_out,
+        "sweep_v3_cohort": sweep_out,
+    }, indent=1, default=lambda o: o.item() if hasattr(o, "item") else str(o)))
+    print(f"wrote {RESULTS}")
+    pd.to_pickle({"raw": lev_raw, "norm": lev_norm, "v3only": lev_v3,
+                  "step": step_all}, CACHE)
     print(f"\nwrote {CACHE}")
     return 0
 

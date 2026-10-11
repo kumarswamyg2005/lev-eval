@@ -1,206 +1,142 @@
-# Draft insert: a learned alternative to LEV's compounding rule
+# Appendix draft: a learned aggregation of EPSS history (negative results)
 
-> **WARNING (2026-10-11): do not merge this as written.** A robustness check
-> (dropping CISA-KEV-listed CVEs from the Experiment 1 target) removes the
-> learned model's advantage over LEV and reverses it against current EPSS, so
-> the E1 headline, the "peak EPSS" interpretation and the Discussion item below
-> are circularity artifacts. Also: LEV is additive on the log-survival scale,
-> not the logit scale; `learned_lev.py` uses raw LEV while §5.7 uses
-> version-normalized LEV. See `PROJECT-REVIEW.md` §9 for what survives.
-
-Status: draft for review, not yet merged into `draft.md`. Every number below
-comes from `python analysis/learned_lev.py` (output in
-`results/learned_lev.json`, figure `figures/learned_lev.png`). Merge points are
-marked **[→ §x]**.
+Status: replaces the 11 October first draft, which over-claimed (see
+`PROJECT-REVIEW.md` §9). Every number comes from `python
+analysis/learned_lev.py` → `results/learned_lev.json`, `figures/learned_lev.png`.
+LEV here is version-normalized, the same LEV as §5.6-5.7.
 
 ---
 
-## Why this model, and not a classifier
+## A. Can a learned aggregation of EPSS history beat LEV?
 
-The report's "Why there is no model" argues against a classifier on four
-grounds. This model is designed to meet each one, not to wave them away:
+**Question.** LEV combines a CVE's EPSS history with one fixed rule. Would a
+model that sees the same history, and nothing else, combine it better? We
+restrict the inputs to EPSS history so that the comparison tests LEV's rule,
+not the value of extra data.
 
-| Objection | How the design meets it |
-|---|---|
-| Wrong question: a better predictor does not test LEV | The model sees **only LEV's own inputs**, a CVE's EPSS history. No CVSS, CWE, vendor or exploit-code features. Holding information fixed and changing only the aggregation rule turns the model into a test of LEV's rule. |
-| Broken labels: KEV is incomplete | The primary target is the **union of the three evidence-citing lists**; KEV is secondary. Under the selected-completely-at-random assumption, a classifier trained on incomplete positives ranks exactly as one trained on the truth, and its probabilities are a fixed fraction of the true ones [27]. Ranking metrics therefore stay valid; probabilities are lower bounds, like every rung of the truth ladder. |
-| Circularity: KEV is an EPSS input | Experiment 2 is **forward**: features use EPSS dated ≤ t, CVEs already on any list at t are excluded, and the label is first listing after t. A listing cannot raise scores dated before it. |
-| It would just reproduce EPSS | Current EPSS is a **baseline the model must beat**, not a hidden input. |
+**Design.** Seven features, all computed from version-normalized EPSS dated on
+or before the analysis date: LEV, log CVE age, and current, peak, mean, first
+and three-month-trend EPSS. There are two learners:
+- L2 logistic regression, with probability features on the logit scale;
+- gradient-boosted trees, monotone in LEV and heavily regularized.
 
-Temporal design follows the security-ML pitfalls literature: no test row's
-label window overlaps a training row's, and the deciding test always trains on
-the past and scores the future [28, 29].
+The choice between them is fixed by a rule that sees only training data: fit
+on the older two-thirds of the training cohort, validate on the newer third,
+keep the higher average precision (AP). We wrote this rule after a first,
+unreported run, and we report both models throughout. Baselines are LEV,
+current EPSS, peak EPSS, and the isotonic and age-aware Platt maps of §4.7.
 
----
+*Experiment 1* repeats the prospective test of §4.7. Models are fitted on
+2025-08-01 with outcomes known then, and scored on 2026-08-01 on the 44,316
+CVEs the fit never saw. There are three targets:
+- the union of primary lists;
+- CISA KEV;
+- the union with every KEV-listed CVE removed from training and test. KEV is
+  an EPSS input, so this target cuts the path by which a listing raises later
+  scores.
 
-## 4.8 Learned aggregation **[→ new §4.8, after §4.7]**
+For the logistic model the bootstrap resamples training *and* test CVEs and
+refits, so the intervals include training variance.
 
-LEV aggregates a CVE's EPSS history with a fixed rule: multiply the 30-day
-survival probabilities. We ask whether a model that sees the same history, but
-learns how to aggregate it, does better. If it does, part of LEV's error lies
-in the rule (independence across windows, compounding across retrainings, no
-decay), not in the information EPSS carries.
+*Experiment 2* is forward. At origin t we take every CVE that is at least 30
+days old and on no list. We compute features at t and label the CVE positive
+if it is first listed in the next 182 days. We train one horizon earlier and
+use three origins (test origins 2025-08-02, 2025-10-31, 2026-01-30). A second
+target uses only CISA and SENSOR dates, because VulnCheck's dates come from a
+later snapshot and may be backdated.
 
-**Features.** Eight, all computed from EPSS snapshots dated on or before the
-analysis date: LEV itself, log CVE age, and the CVE's current, peak, mean and
-first EPSS, its three-month trend, and the number of EPSS retrainings its
-history crosses.
+**Results.**
 
-**Models.** The primary model is L2-regularized logistic regression with the
-probability features on the logit scale, where LEV's compounding is additive;
-it is LEV with learned weights in place of fixed ones. A gradient-boosted tree
-model, constrained to be monotone in LEV and heavily regularized, checks
-whether a more flexible learner finds anything a linear one misses.
+*No learned aggregation ranks better than LEV or current EPSS (Table A1).* On
+every target the logistic model's AP is within noise of LEV's:
+- union: 0.398 against 0.399, difference 95% CI −0.134 to +0.035;
+- union without KEV: −0.137 to +0.021;
+- CISA KEV: 0.196 against 0.324, difference −0.229 to +0.001. Against current
+  EPSS it is significantly worse (−0.354 to −0.124).
 
-**Experiment 1 (correction).** The populations, targets and three validation
-schemes of §4.7, unchanged, with both models added beside isotonic regression
-and the age-aware Platt model.
+The boosted model is significantly worse than LEV on all three targets
+(union −0.115 to −0.061). The pre-declared rule picked logistic in five of six
+splits. Peak EPSS alone (AP 0.424, union) is as good as anything.
 
-**Experiment 2 (leading indicator).** At t = 2025-08-01 we take every CVE in
-the Phase 2 population with at least a month of EPSS history and not yet on
-any primary list, compute features at t, and label it positive if it first
-appears on a list in the next 182 days. The models are fitted on these and
-applied at t = 2026-01-30, whose label window (to 2026-08-01) starts where the
-training window ends. We score average precision (AP), precision and recall
-among the top 1% of CVEs, and calibration, with 95% bootstrap intervals (500
-resamples) on AP differences.
-
----
-
-## 5.8 LEV's rule loses information, but nothing anticipates the lists **[→ new §5.8]**
-
-**A re-weighted LEV ranks better and stays calibrated a year ahead.** Table 7
-gives the prospective test of §5.7 with the learned models added.
-
-| method | union: pred/obs | union: AP | KEV: pred/obs | KEV: AP |
-|---|---|---|---|---|
-| raw LEV | 2.83x | 0.397 | 8.81x | 0.341 |
-| current EPSS | 0.73x | 0.404 | 2.28x | 0.456 |
-| isotonic | 1.02x | 0.349 | 0.62x | 0.311 |
-| Platt with CVE age | 0.94x | 0.372 | 0.82x | 0.337 |
-| **logistic (learned)** | **0.91x** | **0.435** | **0.94x** | **0.439** |
-| gradient-boosted trees | 1.11x | 0.313 | 1.60x | 0.251 |
-
-Table 7: Prospective validation. Fitted at 2025-08-01, scored at 2026-08-01 on
-44,316 CVEs the fit never saw. Union of primary lists: 111 training positives;
-KEV: 288.
-
-Against the union of the primary lists, the logistic model ranks better than
-raw LEV (AP +0.038, 95% interval +0.019 to +0.054), better than current EPSS
-(+0.009 to +0.057) and better than the best correction of §5.7 (+0.038 to
-+0.083), while staying calibrated (0.91x) with the lowest Brier score of any
-method. Against KEV it again beats LEV (+0.048 to +0.153) and transfers better
-than any correction curve (0.94x against 0.62-0.82x), but it does not beat
-current EPSS (-0.061 to +0.023). That is the pattern circularity predicts:
-once a CVE is listed, its current EPSS already knows it.
-
-The gradient-boosted model is significantly worse than the logistic one
-prospectively (union AP -0.100 to -0.142) although slightly better under
-cross-validation. With 111 positives it fits the training year, not the
-signal. There is nothing non-linear left for this much data to teach.
-
-**What the model learns.** On the logit scale, the largest weight goes to a
-CVE's *peak* EPSS (+1.03 per standard deviation on the union target, +1.76 on
-KEV). LEV's own weight is small (+0.45) or negative (-0.22) once the peak is
-known. The features are correlated, so single coefficients should not be read
-causally. Together, though, they say the evidence sits in a CVE's highest score,
-not spread evenly over its windows as LEV's product assumes. The retraining
-count could not be tested here: every CVE in the training populations crosses
-the same retraining, so the feature is constant.
-
-**The age drift remains.** Across birth cohorts the logistic model still
-drifts (1.43x on the union target, 0.36x on KEV), as do the curves of §5.7.
-Learned weights do not remove the dependence of LEV's meaning on CVE age; they
-only shrink the error that follows from it in a forward-in-time test.
-
-**No aggregation anticipates the lists.** Experiment 2 removes circularity
-entirely. Of 49,678 CVEs unlisted on 2026-01-30, 97 (0.20%) appear on a primary
-list in the next six months.
-
-| method | AP | precision in top 1% | recall in top 1% |
+| method | union AP (pred/obs) | KEV AP (pred/obs) | union without KEV AP (pred/obs) |
 |---|---|---|---|
-| raw LEV | 0.020 | 3.2% | 16.5% |
-| current EPSS | 0.025 | 3.2% | 16.5% |
-| Platt with CVE age | 0.035 | 4.6% | 23.7% |
-| logistic (learned) | 0.026 | 5.2% | 26.8% |
-| gradient-boosted trees | 0.012 | 2.2% | 11.3% |
+| LEV | 0.399 (2.03x) | 0.324 (6.30x) | 0.228 (2.66x) |
+| current EPSS | 0.404 (0.65x) | 0.457 (2.02x) | 0.221 (0.72x) |
+| peak EPSS | 0.424 (0.97x) | 0.459 (3.03x) | 0.237 (1.17x) |
+| isotonic | 0.337 (1.00x) | 0.239 (1.29x) | 0.203 (0.94x) |
+| Platt with age | 0.366 (0.88x) | 0.329 (0.61x) | 0.180 (1.20x) |
+| logistic | 0.398 (0.99x) | 0.196 (1.52x) | 0.190 (0.74x) |
+| boosted trees | 0.309 (1.05x) | 0.127 (2.47x) | 0.089 (0.45x) |
 
-Table 8: Forward test, union target. Features at 2026-01-30; outcome is first
-listing by 2026-08-01. Trained one horizon earlier on 32,223 CVEs (71 positive).
+Table A1: Prospective test. Fitted 2025-08-01, scored 2026-08-01 on 44,316
+unseen CVEs (union 597 positives, KEV 192, union without KEV 405). Training
+positives: 111, 41 and 70.
 
-Every method beats chance by 10-25x at the top of the ranking, and none is
-usable as an early warning: the best flags one future listing in about 20
-CVEs. No difference in AP is significant. Learned against LEV: -0.008 to
-+0.020. Learned against EPSS: -0.017 to +0.014. EPSS against LEV: -0.001 to
-+0.016. LEV's accumulated history adds nothing measurable to the current EPSS
-score as a leading indicator, and a learned aggregation adds nothing to
-either. Against KEV alone the forward test has 14 training and 17 test
-positives and is too small to separate methods.
+*An apparent gain was an artifact.* A first version of this experiment used
+un-normalized EPSS and kept KEV-listed CVEs in the target. There, the logistic
+model beat LEV (AP 0.435 against 0.397, test-only bootstrap +0.02 to +0.05).
+The gain disappears when *either* condition is removed. Version-normalized
+inputs give 0.398 against 0.399. Dropping KEV members gives a difference of
+−0.051 to +0.006 against LEV, and −0.029 to −0.004 against current EPSS. This
+is the circularity of §5.5 in another form: a model trained on lists that feed
+EPSS learns the feedback.
 
-![Figure 6. Left: held-out predicted/observed for every correction, union target. Right: precision-recall in the forward test.](../figures/learned_lev.png)
+*Learned maps calibrate, like isotonic.* The logistic map's prospective
+pred/obs is 0.74-1.52x, against 2.0-6.3x for LEV. That is no better than the
+monotone maps of §5.7.
 
----
+*Nothing anticipates the lists, and most listings are out of reach (Table
+A2).* Across three forward origins:
+- no method's AP is significantly above current EPSS;
+- the boosted model is significantly below it at two origins;
+- the logistic model is significantly below it at one origin (−0.053 to
+  −0.002).
 
-## Discussion additions **[→ §6, "What would make LEV more reliable"]**
+LEV's accumulated history adds nothing measurable to current EPSS as a leading
+indicator. Current EPSS is never significantly worse than LEV, and is
+slightly better at two of the three origins with the CISA and SENSOR dates. More
+importantly, **59-75% of the listings in each window concern CVEs first scored
+less than 30 days before the window**. Any method that relies on a CVE's
+history, LEV included, cannot see them in advance.
 
-Add as a fifth change: *weight the evidence rather than multiply it.* The same
-EPSS history, re-weighted by a linear model with one weight per feature, ranks
-exploited CVEs better than LEV and stays calibrated a year ahead. Its largest
-weight falls on a CVE's peak score. A LEV variant built on the peak, or on
-learned weights refitted yearly, would keep LEV's interpretability and lose
-part of its error.
+| test origin | positives / N | base rate | LEV | current EPSS | logistic | boosted trees |
+|---|---|---|---|---|---|---|
+| 2025-08-02 | 71 / 32,223 | 0.22% | 0.035 | 0.042 | 0.019 | 0.007 |
+| 2025-10-31 | 105 / 43,059 | 0.24% | 0.029 | 0.027 | 0.038 | 0.026 |
+| 2026-01-30 | 97 / 49,678 | 0.20% | 0.020 | 0.025 | 0.022 | 0.010 |
 
-Replace the sentence on the white paper's proposed use with: *Neither LEV nor
-any aggregation of EPSS history we tried anticipates which CVEs the lists will
-record next; the signal that would find KEV's missing entries in advance is not
-in EPSS history.*
+Table A2: Forward test, union target, AP for the next 182 days among unlisted
+CVEs at least 30 days old.
 
-## Threats additions **[→ §7]**
+**What this adds to the paper.**
+1. LEV's rule is not what limits it. A learned rule on the same history does
+   no better, so the information in EPSS history, not its aggregation, sets
+   the ceiling.
+2. Evaluations that train or test on KEV-fed lists can show gains that are
+   pure feedback. We demonstrate one and remove it.
+3. History-based metrics cannot serve the white paper's proposed use
+   (flagging exploited CVEs before catalogues do) for most listings, which
+   happen within a month of a CVE's first score.
 
-- **Snapshot circularity in Experiment 1.** KEV members are part of the union
-  target, and listing raises later EPSS. The prospective gain over LEV could
-  partly reflect that. Experiment 2 has no such path, and there the learned
-  model's advantage is not significant. A union target without CISA KEV is the
-  natural next check.
-- **Small positive counts.** 111 union positives train the prospective model
-  and 71 the forward one. Logistic regression was chosen as primary for this
-  reason; the boosted model's collapse shows what overfitting costs here.
-- **One forward split.** Experiment 2 uses a single six-month horizon; rolling
-  origins would tighten its intervals once more months of SENSOR data exist.
+**Threats.**
+- Training sets are small (24-111 positives).
+- We ran one prospective split for Experiment 1 and three forward origins.
+- There are many intervals and no multiplicity correction, so these results
+  are exploratory.
+- SENSOR is an EPSS label source, so some circularity remains even without
+  KEV.
+- The forward population excludes CVEs younger than 30 days by design.
 
-## Related work addition **[→ §8, new paragraph "Learning exploitation"]**
+## Main-text sentences (to place in §5.7 or §6)
 
-Expected Exploitability learns the probability that a functional exploit will
-be developed and tracks it over time [30]. Recent frameworks train classifiers
-on EPSS and KEV directly (§8, [21-23]). We differ in what the model is for: it
-is restricted to LEV's own information to test LEV's aggregation rule, it is
-trained on lists audited for dependence rather than on KEV, and it is
-validated forward in time, as the security-ML literature recommends [28, 29].
-Positive-unlabeled learning [27, 31] gives the reason incomplete lists still
-support a ranking evaluation, and capture-recapture (§4.6) supplies the label
-frequency that PU methods otherwise have to assume.
+> Restricted to EPSS-history inputs, neither logistic regression nor boosted
+> trees ranks exploited CVEs better than LEV or current EPSS a year ahead, and
+> no method anticipates new list entries better than current EPSS. An apparent
+> learned gain appears only with un-normalized inputs and KEV-listed CVEs in the
+> target, and vanishes when either is removed (Appendix A).
 
-## References to add
+## References used
 
-| # | Reference | Status |
-|---|---|---|
-| 27 | C. Elkan and K. Noto. *Learning Classifiers from Only Positive and Unlabeled Data.* KDD 2008, pp. 213-220. | verified 2026-10-11 |
-| 28 | D. Arp, E. Quiring, F. Pendlebury, A. Warnecke, F. Pierazzi, C. Wressnegger, L. Cavallaro, K. Rieck. *Dos and Don'ts of Machine Learning in Computer Security.* USENIX Security 2022. | verified 2026-10-11 (authors from arXiv:2010.09470) |
-| 29 | F. Pendlebury, F. Pierazzi, R. Jordaney, J. Kinder, L. Cavallaro. *TESSERACT: Eliminating Experimental Bias in Malware Classification across Space and Time.* USENIX Security 2019, pp. 729-746. | verified 2026-10-11 |
-| 30 | O. Suciu, C. Nelson, Z. Lyu, T. Bao, T. Dumitras. *Expected Exploitability: Predicting the Development of Functional Vulnerability Exploits.* USENIX Security 2022, pp. 377-394. | verified 2026-10-11 |
-| 31 | J. Bekker and J. Davis. *Learning from Positive and Unlabeled Data: A Survey.* Machine Learning 109(4):719-760, 2020. | verified 2026-10-11 |
-
-## Other files that must change if this is merged
-
-These still say no model is trained:
-
-- `report/lev-report-print.html` line 482, section "Why there is no model":
-  reframe it as "Why the model is restricted", keeping the four reasons and
-  pointing to the table at the top of this file.
-- `report/deck.js` lines 251-252: speaker note "This is the only model we fit".
-- `PRESENTATION-GUIDE.md` line 131 ("the only model I trained, on purpose") and
-  the Q&A answer at lines 153-157.
-- Abstract and contributions list in `draft.md`: add one contribution, e.g.
-  *"6. A learned aggregation. Re-weighting the same EPSS history beats LEV's
-  product prospectively, but no aggregation of EPSS history anticipates the
-  lists."*
+[27] Elkan & Noto 2008; [28] Arp et al. 2022; [29] Pendlebury et al. 2019;
+[30] Suciu et al. 2022; [23] ThreatLens; [43] Nucleus Security 2026. Full
+entries in `references.md`.

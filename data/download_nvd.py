@@ -11,6 +11,7 @@ Run: python data/download_nvd.py
 """
 
 import argparse
+import hashlib
 import io
 import json
 import re
@@ -25,21 +26,31 @@ ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / "cache"
 ZIP = CACHE / "cvelist_all.zip"
 INNER = CACHE / "cvelist_cves.zip"   # the release asset is a zip containing a zip
-LATEST = "https://api.github.com/repos/CVEProject/cvelistV5/releases/latest"
+# Pinned release, not releases/latest: the CVE list changes hourly, so "latest"
+# silently moves the data under a published result.  Recorded in DATA_SNAPSHOT.md.
+TAG = "cve_2026-08-25_1700Z"
+ASSET = "2026-08-25_all_CVEs_at_midnight.zip.zip"
+URL = (f"https://github.com/CVEProject/cvelistV5/releases/download/{TAG}/{ASSET}")
+SHA256 = "87ca8c2c259aeed76d8400b7455a2a34a6f0543562f269fd4826a24fa351e823"
 
 MIN_YEAR = 2022      # cohort CVE IDs are 2022 or later; skip the rest
 
 
+def _verify(path):
+    with open(path, "rb") as fh:
+        got = hashlib.file_digest(fh, "sha256").hexdigest()
+    assert got == SHA256, (f"{path.name}: SHA-256 {got} does not match the pin "
+                           f"{SHA256} (release {TAG}) in DATA_SNAPSHOT.md")
+
+
 def download(refresh=False):
+    """The pinned release asset.  refresh=True re-downloads the SAME tag."""
     if ZIP.exists() and not refresh:
+        _verify(ZIP)
         return ZIP
     CACHE.mkdir(parents=True, exist_ok=True)
-    rel = requests.get(LATEST, timeout=60).json()
-    asset = next(a for a in rel["assets"] if a["name"].endswith("_at_midnight.zip.zip"))
-    print(f"cvelist: downloading {asset['name']} "
-          f"({asset['size'] / 1e6:.0f} MB, release {rel['tag_name']})")
-    with requests.get(asset["browser_download_url"], stream=True,
-                      timeout=1800) as r:
+    print(f"cvelist: downloading {ASSET} (~586 MB, release {TAG})")
+    with requests.get(URL, stream=True, timeout=1800) as r:
         r.raise_for_status()
         done = 0
         with open(ZIP, "wb") as fh:
@@ -48,6 +59,7 @@ def download(refresh=False):
                 done += len(chunk)
                 print(f"  {done / 1e6:,.0f} MB", end="\r", flush=True)
     print()
+    _verify(ZIP)
     return ZIP
 
 

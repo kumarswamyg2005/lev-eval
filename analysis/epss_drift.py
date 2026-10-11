@@ -14,6 +14,7 @@ Run: python analysis/epss_drift.py
 
 import datetime as dt
 import gzip
+import json
 import sys
 from pathlib import Path
 
@@ -31,6 +32,10 @@ from analysis.dn_sweep import COHORTS, EPSS_ERAS, SWEEP_START
 
 ROOT = Path(__file__).resolve().parent.parent
 FIGURE = ROOT / "figures" / "epss_drift.png"
+RESULTS = ROOT / "results" / "epss_drift.json"
+DAILY_HALF_WIDTH = 10        # days of daily files either side of each switch
+VERSION_NAMES = {"v2023.03.01": "EPSS v3", "v2025.03.14": "EPSS v4",
+                 "v2026.06.15": "EPSS v5"}
 
 # The model_version string is a BUILD date, not a deployment date: v2025.03.14
 # first appears in the 2025-03-17 file, three days later.  Assuming the two
@@ -226,23 +231,84 @@ def main():
               f"(within-version drift), {frac_step:.0%} retraining steps")
 
     # ---- step 1: plot -------------------------------------------------
-    fig, ax = plt.subplots(figsize=(8, 4.5))
-    for (name, s), c in zip(series.items(), ["#c1440e", "#365c8d"]):
-        ax.plot(s.index, s.to_numpy(), "-o", ms=3, color=c,
-                label=name.split(" (")[0])
-    for d, v in EPSS_ERAS.items():
-        if d >= SWEEP_START:
-            ax.axvline(d, color="gray", ls=":", lw=1)
-            ax.annotate(f"EPSS {v}", (d, ax.get_ylim()[1]), fontsize=7,
-                        rotation=90, va="top", ha="right", color="gray")
-    ax.set_xlabel("analysis date (dn)")
+    # Monthly snapshots put the v4 step at 2025-04-01, two weeks late.  Daily
+    # files around each switch are overlaid so the step sits on its real day.
+    print("\ndaily cohort means around each switchover...")
+    daily = {name: {} for name in COHORTS}
+    cohort_idx = {name: wide.index[not_backfill & first_date.between(
+        pd.Timestamp(lo), pd.Timestamp(hi))] for name, (lo, hi) in COHORTS.items()}
+    for _, _, d_after, _, _ in brackets:
+        for k in range(-DAILY_HALF_WIDTH, DAILY_HALF_WIDTH + 1):
+            day = d_after + dt.timedelta(days=k)
+            got = read_day(day)
+            if got is None:
+                continue
+            ts = pd.Timestamp(day)
+            prev = dates[dates <= ts][-1]           # monthly ffill for absentees
+            for name, idx in cohort_idx.items():
+                v = got[1].reindex(idx).fillna(wide.loc[idx, prev])
+                daily[name][ts] = float(v.mean())
+    import matplotlib.dates as mdates
+    fig = plt.figure(figsize=(7, 5.6))
+    gs = fig.add_gridspec(2, 2, height_ratios=[1.6, 1], hspace=0.45, wspace=0.3)
+    ax = fig.add_subplot(gs[0, :])
+    zooms = [fig.add_subplot(gs[1, i]) for i in range(len(brackets[:2]))]
+    switches = [pd.Timestamp(b[2]) for b in brackets]
+    colors = ["#c1440e", "#365c8d"]
+    for (name, s_), c in zip(series.items(), colors):
+        short = name.split(" (")[0]
+        ax.plot(s_.index, s_.to_numpy(), "-o", ms=3, color=c, lw=1.2,
+                label=f"{short} cohort")
+        dd = pd.Series(daily[name]).sort_index()
+        for zax, sw in zip(zooms, switches):
+            w = dd[np.abs((dd.index - sw).days) <= DAILY_HALF_WIDTH]
+            zax.plot(w.index, w.to_numpy(), "-o", ms=2.5, color=c, lw=1)
+    for d in switches:
+        ax.axvline(d, color="gray", ls=":", lw=1)
+    for zax, d in zip(zooms, switches):
+        zax.axvline(d, color="gray", ls=":", lw=1)
+        zax.set_xlim(d - pd.Timedelta(days=DAILY_HALF_WIDTH + 1),
+                     d + pd.Timedelta(days=DAILY_HALF_WIDTH + 1))
+    for a_ in [ax] + zooms:
+        a_.grid(alpha=.3)
+    edges = [pd.Timestamp(dns[0]) - pd.Timedelta(days=15)] + switches + \
+            [pd.Timestamp(dns[-1]) + pd.Timedelta(days=15)]
+    versions = ["v2023.03.01"] + [b[4][0] for b in brackets]
+    for x0, v in zip(edges[:-1], versions):
+        ax.annotate(VERSION_NAMES.get(v, v), (x0, 1),
+                    xycoords=("data", "axes fraction"), xytext=(3, -4),
+                    textcoords="offset points", ha="left", va="top",
+                    fontsize=8, color="gray")
+    ax.set_xlim(edges[0], edges[-1])
+    ax.set_xlabel("analysis date (monthly snapshots)")
     ax.set_ylabel("cohort mean EPSS")
-    ax.set_title("Cohort mean EPSS vs dn, with model-version boundaries")
-    ax.grid(alpha=.3); ax.legend(fontsize=8)
-    fig.autofmt_xdate()
+    ax.xaxis.set_major_locator(mdates.MonthLocator(bymonth=(1, 7)))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+    ax.legend(fontsize=7, loc="center left")
+    for zax, b_ in zip(zooms, brackets):
+        old, new = (VERSION_NAMES.get(b_[3][0], b_[3][0]),
+                    VERSION_NAMES.get(b_[4][0], b_[4][0]))
+        zax.annotate(f"{old} -> {new}\non {b_[2]:%d %b %Y}", (0.03, 0.95),
+                     xycoords="axes fraction", va="top", fontsize=7)
+        zax.xaxis.set_major_locator(mdates.DayLocator(bymonthday=(1, 8, 15, 22)))
+        zax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
+        zax.set_xlabel("daily files")
+        zax.tick_params(labelsize=7)
+    zooms[0].set_ylabel("cohort mean EPSS")
     FIGURE.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(FIGURE, dpi=150, bbox_inches="tight")
-    print(f"\nwrote {FIGURE}")
+    fig.savefig(FIGURE.with_suffix(".pdf"), bbox_inches="tight")
+    print(f"\nwrote {FIGURE} and .pdf")
+    RESULTS.parent.mkdir(parents=True, exist_ok=True)
+    RESULTS.write_text(json.dumps({
+        "switchovers": [{"label": b[0], "before": str(b[1]), "after": str(b[2]),
+                         "versions": [b[3][0], b[4][0]]} for b in brackets],
+        "verdicts": {k: {"verdict": v[0], "organic_share": v[1],
+                         "retraining_share": v[2]} for k, v in verdicts.items()},
+        "daily_cohort_means": {k: {str(d.date()): x for d, x in sorted(v.items())}
+                               for k, v in daily.items()},
+    }, indent=1, default=lambda o: o.item() if hasattr(o, "item") else str(o)))
+    print(f"wrote {RESULTS}")
 
     print(f"\n{'=' * 78}\nVERDICT\n{'=' * 78}")
     for name, (v, org, ret) in verdicts.items():

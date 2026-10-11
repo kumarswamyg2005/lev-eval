@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software or its results, please cite it as below."
+title: "How Much of LEV's Error Is the Catalogue's? An Empirical Evaluation of NIST's Likely Exploited Vulnerabilities Metric"
+type: software
+authors:
+  - family-names: Gurram
+    given-names: Naga Kumaraswamy
+version: 0.1-draft
+date-released: 2026-10-11
+license: MIT

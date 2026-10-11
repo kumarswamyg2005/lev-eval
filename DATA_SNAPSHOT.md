@@ -1,12 +1,15 @@
 # Data snapshot
 
-Provenance for every input used in Phase 1. All analysis numbers in
-[README.md](README.md) were produced against exactly these artifacts.
+Provenance for every input. All analysis numbers in the paper,
+`results/*.json` and [docs/RESULTS.md](docs/RESULTS.md) were produced against
+exactly these artifacts. Every loader in `data/` asserts the SHA-256 recorded
+here before using a file (VulnCheck only warns; see its section).
 
 Retrieval dates are the local mtimes of the cached files. `cache/` is
-gitignored (~1.5 GB), so this file is the record of what was in it. The two
-sources served from moving refs (Exploit-DB, Metasploit) are committed to
-`data/vendor/` instead, so nothing a reviewer re-fetches can change them.
+gitignored (2.0 GB when populated), so this file is the record of what was in
+it. Sources served from moving refs or live feeds (CISA KEV, Exploit-DB,
+Metasploit, CIRCL, EUVD) are committed to `data/vendor/` instead, so nothing a
+reviewer re-fetches can change them.
 
 Analysis date (`dn`) for all headline results: **2026-08-01** (the last EPSS
 snapshot). Table 5 reproduction uses `dn` = 2025-03-01.
@@ -24,11 +27,19 @@ snapshot). Table 5 reproduction uses `dn` = 2025-03-01.
 | retrieved | 2026-08-25 |
 | missing dates encountered | 2024-12-01 (archive returns 403, not 404) — substituted 2024-12-02 |
 
-Per-file SHA256 is not recorded: the archive is immutable per date, and the
-filename carries the date. Cached frame: `cache/epss_tidy_2021-04-14_2026-08-01_67.pkl`.
+Per-file SHA-256 for the 237 files the analysis reads (all of the above except
+the unused 2026-09-01) is in [data/epss_manifest.sha256](data/epss_manifest.sha256).
+`make fetch` pre-fetches every listed file (including the daily files
+`analysis/sampling_error.py`, `epss_drift.py` and `version_normalize.py` read),
+so `make reproduce` makes no network calls. Verify the cache with
+
+    make verify-data      # = cd cache/epss && shasum -a 256 -c ../../data/epss_manifest.sha256
+
+A freshly downloaded file that is listed in the manifest is also checked
+against it on download. Cached frame: `cache/epss_tidy_2021-04-14_2026-08-01_67.pkl`.
 
 **EPSS model versions spanned** (deployment date, not the version string —
-see README threat 25):
+see [docs/THREATS.md](docs/THREATS.md) threat 25):
 
 | version | first snapshot carrying it | actual deployment |
 |---|---|---|
@@ -48,6 +59,10 @@ see README threat 25):
 | entries | 1,676 |
 | dateAdded range | 2021-11-03 to 2026-08-25 |
 | retrieved | 2026-08-25 |
+| location | **`data/vendor/known_exploited_vulnerabilities.json` — committed to this repo** (public domain) |
+
+The loader reads the committed copy; `python data/download_kev.py --refresh`
+fetches the live feed deliberately (and invalidates the hash above).
 
 ## cvelistV5 — https://github.com/CVEProject/cvelistV5 releases
 
@@ -59,6 +74,7 @@ see README threat 25):
 | records parsed (CVE-2022 onward) | 192,054 |
 | field coverage | 80.5% CVSS v3, 81.9% vendor, 81.4% CWE |
 | retrieved | 2026-08-26 |
+| pinned in | `data/download_nvd.py` (`TAG`, downloads this exact asset, not `releases/latest`) |
 
 Used instead of the NVD API: the API serves ~10 MB per 2000-record page at
 roughly 75 KB/s, ~2.7 hours for this corpus, against one request here.
@@ -158,4 +174,4 @@ independent sources — has 2,912.
 
 ## Environment
 
-Python 3.14.6; exact package versions in [requirements.lock](requirements.lock).
+Python 3.14.7; exact package versions in [requirements.lock](requirements.lock).

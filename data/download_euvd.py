@@ -15,6 +15,7 @@ Run: python data/download_euvd.py
 """
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -23,6 +24,7 @@ import requests
 
 ROOT = Path(__file__).resolve().parent.parent
 VENDOR = ROOT / "data" / "vendor" / "euvd_kev.json"
+SHA256 = "22d58b6385f3f6f76ac202fa6939a0f4ed9b8f77263373d0935d0599cabe2970"
 URL = "https://euvdservices.enisa.europa.eu/api/kev/dump"
 
 
@@ -35,6 +37,10 @@ def load(refresh=False):
         VENDOR.write_bytes(r.content)
         print(f"EUVD: downloaded {len(r.content) / 1e3:.0f} KB "
               "-- update DATA_SNAPSHOT.md hash")
+    else:
+        got = hashlib.sha256(VENDOR.read_bytes()).hexdigest()
+        assert got == SHA256, (f"{VENDOR.name}: SHA-256 {got} does not match "
+                               f"the pin {SHA256} in DATA_SNAPSHOT.md")
     rows = json.loads(VENDOR.read_text())
     eu = [{"cve": x["cveId"], "date": x.get("dateAdded"),
            "also_cisa": "cisa_kev" in x.get("sources", [])}

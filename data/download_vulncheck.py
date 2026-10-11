@@ -36,6 +36,7 @@ runs on the lists that need no account.
 Run: python data/download_vulncheck.py
 """
 
+import hashlib
 import io
 import json
 import os
@@ -48,6 +49,10 @@ import requests
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / "cache" / "vulncheck_kev.json"
+# Pin from DATA_SNAPSHOT.md.  VulnCheck serves only the current feed, so anyone
+# re-downloading with their own token can never match it.  ponytail: a warning,
+# not an assert, or the four-list results could not be run by anyone else.
+SHA256 = "7163d33d4c4698591535af62b6b08b6784e9df0d2614f9fe9fdb33578402f811"
 URL = "https://api.vulncheck.com/v3/backup/vulncheck-kev"
 # report hosts that are sensor networks rather than write-ups
 SENSOR_HOSTS = ("api.vulncheck.com", "crowdsec", "dshield", "greynoise")
@@ -72,6 +77,11 @@ def _download(token):
 def load():
     """CISA-free VulnCheck list: cve, date, via_canary.  None without a token."""
     if CACHE.exists():
+        got = hashlib.sha256(CACHE.read_bytes()).hexdigest()
+        if got != SHA256:
+            print(f"VulnCheck: WARNING {CACHE.name} SHA-256 {got} is not the "
+                  f"pinned snapshot {SHA256}; four-list numbers will differ "
+                  "from DATA_SNAPSHOT.md and the paper")
         records = json.loads(CACHE.read_text())
     else:
         token = os.environ.get("VULNCHECK_API_TOKEN")

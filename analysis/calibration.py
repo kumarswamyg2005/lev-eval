@@ -8,6 +8,7 @@ Run: python analysis/calibration.py
 """
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -24,13 +25,14 @@ from models import lev as levmod
 
 ROOT = Path(__file__).resolve().parent.parent
 FIGURE = ROOT / "figures" / "reliability.png"
+RESULTS = ROOT / "results" / "calibration.json"
 
 EPSS_V3 = pd.Timestamp("2023-03-07")
 CENSOR_DAYS = 183          # "at least 6 months old"
 BINS = np.linspace(0, 1, 11)
 
 
-def cohort(wide, first_idx, dn):
+def cohort(wide, first_idx, dn, censor_days=CENSOR_DAYS):
     """CVEs in the EPSS v3 era, old enough not to be right-censored.
 
     Returns a boolean mask over wide.index.
@@ -51,7 +53,7 @@ def cohort(wide, first_idx, dn):
     # scored last month has had no chance to appear.  ASSUMPTION (not in
     # CSWP 41): 6 months is enough lag.  It is a floor, not a guarantee --
     # KEV additions trail real-world exploitation by an unbounded amount.
-    mature = first_date <= dn - pd.Timedelta(days=CENSOR_DAYS)
+    mature = first_date <= dn - pd.Timedelta(days=censor_days)
     return (first_date >= EPSS_V3) & new & mature
 
 
@@ -144,6 +146,57 @@ def significance(table):
     return out
 
 
+def trend_test(table, scores="index"):
+    """Cochran-Armitage test for a linear trend in KEV rate across buckets.
+
+    The adjacent-pair Fisher tests above can only say whether two NEIGHBOURING
+    buckets differ; failing to reject is not evidence of a flat stretch.  The
+    trend test asks the ranking question directly: does the KEV rate rise with
+    the bucket over the rows given?  scores = "index" (0, 1, ...) or "predicted"
+    (bucket mean LEV).  Returns {z, p (two-sided), p_one (increasing)}.
+    """
+    t = table[table["n"] > 0]
+    n, k = t["n"].to_numpy(float), t["n_in_kev"].to_numpy(float)
+    s = (np.arange(len(t), dtype=float) if scores == "index"
+         else t["predicted"].to_numpy(float))
+    N, K = n.sum(), k.sum()
+    pbar = K / N
+    T = float(np.sum(s * (k - n * pbar)))
+    var = pbar * (1 - pbar) * (np.sum(n * s ** 2) - np.sum(n * s) ** 2 / N)
+    z = T / np.sqrt(var)
+    return {"buckets": list(t["bucket"]), "scores": scores, "z": float(z),
+            "p": float(2 * stats.norm.sf(abs(z))), "p_one": float(stats.norm.sf(z))}
+
+
+def ratio_row(pred, y):
+    """n, mean LEV, KEV rate and ratio with an exact Poisson interval on k."""
+    pred, y = np.asarray(pred, float), np.asarray(y, float)
+    k = int(y.sum())
+    lo, hi = poisson_ci(k)
+    return {"n": len(pred), "mean_lev": float(pred.mean()), "n_kev": k,
+            "kev_rate": float(y.mean()),
+            "ratio": float(pred.sum() / k) if k else np.nan,
+            "ratio_lo": float(pred.sum() / hi),
+            "ratio_hi": float(pred.sum() / lo) if lo else np.inf}
+
+
+AGE_BANDS = [(6, 12), (12, 24), (24, 999)]     # months since first EPSS score
+
+
+def age_bands(pred, y, age_months):
+    """Calibration by CVE age at dn: the pooled 17.3x mixes 6- to 41-month-old
+    CVEs, and LEV accumulates windows with age."""
+    out = []
+    for lo, hi in AGE_BANDS:
+        m = (age_months >= lo) & (age_months < hi)
+        r = ratio_row(pred[m], y[m])
+        r["band"] = f"{lo}-{hi if hi < 999 else ''} months"
+        r["top_bucket_rate"] = (float(y[m & (pred >= 0.9)].mean())
+                                if (m & (pred >= 0.9)).any() else np.nan)
+        out.append(r)
+    return out
+
+
 def dip_check(table, lo="[0.5, 0.6)"):
     """Is the [0.5, 0.6) dip signal or noise? Compare it to both neighbours."""
     occ = table[table["n"] > 0].reset_index(drop=True)
@@ -189,33 +242,52 @@ def evaluate(pred, obs):
 
 
 def plot(table, brier, ece, n, path=FIGURE):
+    """Reliability diagram on log-log axes.
+
+    Observed rates run 0.0003-0.13 against predictions of 0.01-0.99; on linear
+    axes every point sat in the bottom 15%.  Log axes keep the diagonal and
+    show the factor gap directly (one decade = 10x).  Brier/ECE go in the
+    caption, not a title.
+    """
+    from matplotlib.ticker import FuncFormatter, NullFormatter
     ok = table["n"] > 0
     fig, (ax, axh) = plt.subplots(
-        2, 1, figsize=(6.5, 7.5), sharex=True,
+        2, 1, figsize=(5.5, 6), sharex=True,
         gridspec_kw={"height_ratios": [3, 1], "hspace": 0.08})
 
-    ax.plot([0, 1], [0, 1], "--", color="gray", lw=1, label="perfect calibration")
+    lim = (1e-4, 1.0)
+    ax.plot(lim, lim, "--", color="gray", lw=1, label="perfect calibration")
+    for f in (10, 100):
+        ax.plot(lim, np.array(lim) / f, ":", color="gray", lw=.8)
+        ax.annotate(f"{f}x over", (0.6, 0.6 / f), fontsize=7, color="gray",
+                    ha="right", va="bottom")
     t = table[ok]
+    lo = np.maximum(t["obs_lo"], lim[0])     # Wilson lower bound can be 0
     ax.errorbar(t["predicted"], t["observed"],
-                yerr=[t["observed"] - t["obs_lo"], t["obs_hi"] - t["observed"]],
+                yerr=[t["observed"] - lo, t["obs_hi"] - t["observed"]],
                 fmt="o-", color="#c1440e", ecolor="#c1440e", capsize=3,
-                lw=1.5, ms=5, label="LEV (95% Wilson)")
+                lw=1.5, ms=5, label="LEV vs KEV (95% Wilson)")
+    ax.set_xscale("log"); ax.set_yscale("log")
     ax.set_ylabel("observed fraction in CISA KEV")
-    ax.set_title(f"LEV reliability diagram (n={n:,} CVEs)\n"
-                 f"Brier = {brier:.4f}   ECE = {ece:.4f}")
-    ax.set_xlim(0, 1); ax.set_ylim(0, 1)
-    ax.grid(alpha=.3); ax.legend(loc="upper left")
+    ax.set_xlim(5e-3, 1.2); ax.set_ylim(*lim)
+    ax.grid(alpha=.3, which="major"); ax.legend(loc="upper left", fontsize=8)
 
-    centres = (BINS[:-1] + BINS[1:]) / 2
-    axh.bar(centres, table["n"], width=.09, color="#365c8d")
+    axh.bar(t["predicted"], t["n"], width=t["predicted"] * 0.12,
+            color="#365c8d")
     axh.set_yscale("log")
-    axh.set_ylabel("CVEs (log)")
-    axh.set_xlabel("predicted LEV probability")
-    axh.grid(alpha=.3)
+    axh.set_ylabel("CVEs")
+    axh.set_xlabel("mean predicted LEV in bucket")
+    axh.grid(alpha=.3, which="major")
+    plain = FuncFormatter(lambda v, _: f"{v:g}")
+    for a in (ax, axh):
+        a.xaxis.set_major_formatter(plain)
+        a.xaxis.set_minor_formatter(NullFormatter())
+    ax.yaxis.set_major_formatter(plain)
 
     path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path, dpi=150, bbox_inches="tight")
-    print(f"\nwrote {path}")
+    fig.savefig(path.with_suffix(".pdf"), bbox_inches="tight")
+    print(f"\nwrote {path} and .pdf")
 
 
 def main():
@@ -268,6 +340,58 @@ def main():
     lo, hi = poisson_ci(int(y.sum()))
     print(f"  95% interval on the ratio (Poisson error on the {int(y.sum())} KEV CVEs): "
           f"{p.sum() / hi:.1f}x - {p.sum() / lo:.1f}x")
+
+    # ---- trend test: does LEV rank inside the middle range? -------------
+    print("\n--- Cochran-Armitage trend test (KEV rate rising with bucket) ---")
+    trends = {}
+    for label, rows in [("all", slice(None)), ("middle [0.1,0.9)", slice(1, 9))]:
+        for sc in ("index", "predicted"):
+            r = trend_test(table.iloc[rows], sc)
+            trends[f"{label}, scores={sc}"] = r
+            print(f"  {label:<17s} scores={sc:<9s}: z = {r['z']:6.2f}  "
+                  f"p = {r['p']:.2e}  ({len(r['buckets'])} buckets)")
+    print("  The adjacent-pair tests above do not show a flat middle: failing to")
+    print("  separate neighbours is not evidence of no ranking.")
+
+    # ---- calibration by CVE age at dn ------------------------------------
+    first_date = pd.Series(wide.columns.to_numpy()[first_idx[m].to_numpy()],
+                           index=pred.index)
+    age = ((dn - first_date).dt.days / 30.44).to_numpy()
+    bands = age_bands(p, y, age)
+    print(f"\n--- calibration by CVE age at dn ({dn.date()}) ---")
+    for r in bands:
+        print(f"  {r['band']:<13s} n={r['n']:>6,}  mean LEV {r['mean_lev']:.4f}  "
+              f"KEV {r['n_kev']:>3} ({r['kev_rate']:.5f})  ratio {r['ratio']:.1f}x "
+              f"[{r['ratio_lo']:.1f}, {r['ratio_hi']:.1f}]  "
+              f"KEV rate at LEV>=0.9: {r['top_bucket_rate']:.3f}")
+
+    # ---- maturity-window sensitivity --------------------------------------
+    print("\n--- maturity window (minimum age at dn) sensitivity ---")
+    maturity = []
+    for months, days in ((3, 91), (6, CENSOR_DAYS), (12, 365)):
+        mm = cohort(wide, first_idx, dn, censor_days=days)
+        pp = pred if days == CENSOR_DAYS else levmod.lev(
+            wide[mm], first_idx[mm], dn=dn)
+        yy = pp.index.isin(in_kev).astype(float)
+        r = ratio_row(pp.to_numpy(), yy)
+        top = pp.to_numpy() >= 0.9
+        r.update({"months": months, "top_bucket_n": int(top.sum()),
+                  "top_bucket_rate": float(yy[top].mean()),
+                  "top_bucket_mean_lev": float(pp[top].mean())})
+        maturity.append(r)
+        print(f"  >= {months:>2} months: n={r['n']:>7,}  ratio {r['ratio']:.1f}x "
+              f"[{r['ratio_lo']:.1f}, {r['ratio_hi']:.1f}]  top bucket "
+              f"{r['top_bucket_rate']:.3f} of {r['top_bucket_n']:,}")
+
+    RESULTS.parent.mkdir(parents=True, exist_ok=True)
+    RESULTS.write_text(json.dumps({
+        "dn": str(dn.date()), "headline": ratio_row(p, y),
+        "brier": brier, "ece": ece,
+        "buckets": table.to_dict("records"),
+        "adjacent_fisher_holm": sig.to_dict("records"),
+        "trend_tests": trends, "age_bands": bands, "maturity": maturity,
+    }, indent=1, default=lambda o: o.item() if hasattr(o, "item") else str(o)))
+    print(f"\nwrote {RESULTS}")
 
     plot(table, brier, ece, len(p))
     return 0

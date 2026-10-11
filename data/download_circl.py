@@ -17,6 +17,7 @@ Run: python data/download_circl.py
 """
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -30,6 +31,7 @@ import requests
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / "cache" / "circl"
 VENDOR = ROOT / "data" / "vendor" / "circl_exploited.csv"
+SHA256 = "b7dc2ec6d3b068dc5e1791fe18cade244bbfaadd320eb7850116d5618d239300"
 URL = "https://vulnerability.circl.lu/api/sighting/"
 PER_PAGE = 1000
 CVE_RE = re.compile(r"^CVE-\d{4}-\d{4,}$", re.I)
@@ -117,6 +119,9 @@ def build(refresh=False):
 def load(refresh=False):
     """Per-sighting table: cve, date, cls, source (from the committed snapshot)."""
     if VENDOR.exists() and not refresh:
+        got = hashlib.sha256(VENDOR.read_bytes()).hexdigest()
+        assert got == SHA256, (f"{VENDOR.name}: SHA-256 {got} does not match "
+                               f"the pin {SHA256} in DATA_SNAPSHOT.md")
         df = pd.read_csv(VENDOR, parse_dates=["date"])
         print(f"CIRCL: {len(df):,} exploited sightings from committed snapshot")
         return df

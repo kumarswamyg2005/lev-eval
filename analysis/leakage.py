@@ -27,6 +27,7 @@ on the outcome:
 Run: python analysis/leakage.py
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -39,6 +40,7 @@ from models import lev as levmod
 from analysis import calibration, version_normalize
 
 DN = version_normalize.DN
+RESULTS = Path(__file__).resolve().parent.parent / "results" / "leakage.json"
 # EPSS model deployments, measured in analysis/epss_drift.py
 RETRAININGS = [pd.Timestamp(d) for d in
                ("2022-02-04", "2023-03-07", "2025-03-17", "2026-06-15")]
@@ -81,6 +83,89 @@ def jump_at_listing(wide, first_idx, kev_dates):
     return kev, eff
 
 
+def lev_asof(wide, first_idx, dn, strict=False):
+    """LEV at dn reading only snapshots dated <= dn (< dn if strict).
+
+    levmod.lev substitutes the NEXT available snapshot for a window start it
+    does not hold, which can read a file dated after dn.  For a pre-listing
+    score that file may postdate the listing, so the comparator analysis
+    trims the columns first."""
+    cols = (wide.columns < dn) if strict else (wide.columns <= dn)
+    return levmod.lev(wide.loc[:, cols], first_idx, dn=dn)
+
+
+def matched_comparator(src, first_idx, members, kev_dates, controls,
+                       strict=True, thresholds=(0.1, 0.5, 0.9)):
+    """Pre-listing LEV of each KEV member against non-KEV CVEs first scored on
+    the same snapshot (same age), evaluated at the member's listing date.
+
+    Returns a per-member frame: pre-listing LEV, matched-control share above
+    each threshold, control median, and the member's percentile among its
+    controls."""
+    fi = first_idx.reindex(members)
+    when = kev_dates.reindex(members)
+    rows = []
+    for (f, d), g in pd.DataFrame({"fi": fi, "d": when}).groupby(["fi", "d"]):
+        if src.columns[f] >= d:
+            continue                                   # no pre-listing history
+        ctrl = controls[first_idx.reindex(controls).to_numpy() == f]
+        sel = g.index.append(ctrl)
+        s = lev_asof(src.loc[sel], first_idx.reindex(sel), d, strict=strict)
+        cs = s.reindex(ctrl).to_numpy()
+        for cve in g.index:
+            r = {"cve": cve, "pre": float(s[cve]), "n_ctrl": len(cs),
+                 "ctrl_median": float(np.median(cs)),
+                 "pctile": float((cs < s[cve]).mean() + 0.5 * (cs == s[cve]).mean()),
+                 "age_m": (d - src.columns[f]).days / 30.44}
+            for t in thresholds:
+                r[f"ctrl_ge_{t}"] = float((cs >= t).mean())
+            rows.append(r)
+    return pd.DataFrame(rows).set_index("cve")
+
+
+def summarize_comparator(df, thr=0.5):
+    """Observed vs age-matched expected share above thr, lift, z."""
+    obs = float((df["pre"] >= thr).mean())
+    p = df[f"ctrl_ge_{thr}"].to_numpy()
+    exp = float(p.mean())
+    n = len(df)
+    z = (obs * n - p.sum()) / np.sqrt(max(np.sum(p * (1 - p)), 1e-12))
+    return {"threshold": thr, "n": n, "observed_share": obs,
+            "matched_control_share": exp,
+            "lift": obs / exp if exp else np.inf, "z": float(z)}
+
+
+def fixed_age_lift(src, first_idx, pop, kev_dates, ages=(1, 3, 6, 12), thr=0.5):
+    """Leading-indicator test at fixed CVE age: at first score + A months,
+    flag LEV >= thr among cohort CVEs not yet KEV-listed; outcome = listed
+    after that date and by DN.  Precision vs base rate = lift."""
+    out = []
+    first_date = pd.Series(src.columns[first_idx.reindex(pop).to_numpy()], index=pop)
+    for A in ages:
+        lev_a, ev = [], {}
+        for f, g in first_date.groupby(first_date):
+            e = f + pd.DateOffset(months=A)
+            if e > DN:
+                continue
+            kd = kev_dates.reindex(g.index)
+            keep = g.index[~(kd <= e).to_numpy()]      # not yet listed at e
+            if len(keep):
+                lev_a.append(lev_asof(src.loc[keep], first_idx.reindex(keep), e))
+                ev.update(dict.fromkeys(keep, e))
+        s = pd.concat(lev_a)
+        e = pd.Series(ev).reindex(s.index)
+        kd = kev_dates.reindex(s.index)
+        y = ((kd > e) & (kd <= DN)).to_numpy()
+        flag = (s >= thr).to_numpy()
+        base = y.mean()
+        prec = y[flag].mean() if flag.any() else np.nan
+        out.append({"age_months": A, "n": int(len(s)), "flagged": int(flag.sum()),
+                    "later_listed": int(y.sum()), "base_rate": float(base),
+                    "precision": float(prec), "lift": float(prec / base) if base else np.nan,
+                    "recall": float(flag[y].mean()) if y.any() else np.nan})
+    return out
+
+
 def main():
     tidy = download_epss.load()
     kev = download_kev.load()
@@ -114,7 +199,10 @@ def main():
         d0 = wide.columns[fi.to_numpy()]
         ok = d0 < d                              # scored before being listed
         if ok.any():
-            s = levmod.lev(norm_wide[sel][ok], fi[ok], dn=d)
+            # snapshots dated before the listing only: levmod.lev's
+            # next-available rule otherwise reads the first post-listing file
+            # for the trailing window (raised the median 0.0050 -> 0.0064)
+            s = lev_asof(norm_wide[sel][ok], fi[ok], d, strict=True)
             pre.update(s.to_dict())
     pre = pd.Series(pre).reindex(members)
     has = pre.notna()
@@ -135,6 +223,78 @@ def main():
     print(f"\n  of the {int(top_now.sum())} with history now in the top bucket, "
           f"{int((pre[top_now] >= 0.9).sum())} ({(pre[top_now] >= 0.9).mean():.0%}) "
           f"were already >= 0.9 before listing")
+    # ------------------------------------- 3. age-matched comparator (fix)
+    print(f"\n{'=' * 84}\n3. AGE-MATCHED COMPARATOR -- is 'only 15% >= 0.5' low or high?\n{'=' * 84}")
+    cohort_idx = at_dn.index
+    controls = cohort_idx[~cohort_idx.isin(kev_dates.index)]     # never on KEV by dn
+    print(f"  controls: {len(controls):,} cohort CVEs never on KEV, matched on "
+          f"first-score snapshot (= same age) and evaluated on the member's listing date")
+    out = {"n_members": len(members), "n_with_history": int(has.sum()),
+           "headline_original": {"share_ge_0.5": float((pre[has] >= 0.5).mean()),
+                                 "median": float(pre[has].median()),
+                                 "median_at_dn": float(at_dn[members[has]].median())}}
+    for label, src, strict in [("norm", norm_wide, True),
+                               ("raw", wide, True)]:
+        cmp_ = matched_comparator(src, first_idx, members, kev_dates, controls,
+                                  strict=strict)
+        res = {f"ge_{t}": summarize_comparator(cmp_, t) for t in (0.1, 0.5, 0.9)}
+        res.update({"median_pre": float(cmp_["pre"].median()),
+                    "median_ctrl": float(cmp_["ctrl_median"].median()),
+                    "median_pctile_among_controls": float(cmp_["pctile"].median()),
+                    "share_above_ctrl_p90": float((cmp_["pctile"] >= 0.9).mean()),
+                    "n": len(cmp_)})
+        out[label] = res
+        print(f"\n  --- {label} (n={len(cmp_)}) ---")
+        for t in (0.1, 0.5, 0.9):
+            r = res[f"ge_{t}"]
+            print(f"    LEV >= {t}: KEV-to-be {r['observed_share']:.1%} vs age-matched "
+                  f"non-KEV {r['matched_control_share']:.2%}  lift {r['lift']:.1f}x  "
+                  f"z = {r['z']:.1f}")
+        print(f"    median pre-listing LEV {res['median_pre']:.4f} vs matched-control "
+              f"median {res['median_ctrl']:.5f}; median KEV member sits at the "
+              f"{res['median_pctile_among_controls']:.0%} percentile of its controls; "
+              f"{res['share_above_ctrl_p90']:.0%} above their 90th percentile")
+
+    # elapsed time: same comparison at dn
+    print("\n  --- does elapsed time explain 0.006 (pre) vs 1.0 (at dn)? ---")
+    fi_m = first_idx.reindex(members[has])
+    ctrl_fi = first_idx.reindex(controls)
+    ctrl_dn = at_dn.reindex(controls)
+    # weight controls by how many members share their first-score snapshot
+    w = fi_m.value_counts()
+    meds, ge5 = [], []
+    for f, k in w.items():
+        c = ctrl_dn[ctrl_fi.to_numpy() == f]
+        meds += [float(c.median())] * k
+        ge5 += [float((c >= 0.5).mean())] * k
+    elapsed = {"kev_median_at_dn": float(at_dn[members[has]].median()),
+               "kev_share_ge_0.5_at_dn": float((at_dn[members[has]] >= 0.5).mean()),
+               "ctrl_median_at_dn": float(np.median(meds)),
+               "ctrl_share_ge_0.5_at_dn": float(np.mean(ge5)),
+               "kev_median_pre": out["norm"]["median_pre"],
+               "ctrl_median_pre": out["norm"]["median_ctrl"]}
+    out["elapsed_time"] = elapsed
+    print(f"    KEV members : median {elapsed['kev_median_pre']:.4f} before listing -> "
+          f"{elapsed['kev_median_at_dn']:.3f} at dn  "
+          f"(share >= 0.5 at dn {elapsed['kev_share_ge_0.5_at_dn']:.0%})")
+    print(f"    same-age non-KEV: median {elapsed['ctrl_median_pre']:.5f} at the same "
+          f"listing dates -> {elapsed['ctrl_median_at_dn']:.4f} at dn "
+          f"(share >= 0.5 at dn {elapsed['ctrl_share_ge_0.5_at_dn']:.1%})")
+
+    # fixed-age leading-indicator test
+    print("\n  --- leading-indicator test at fixed age (LEV >= 0.5, norm, no lookahead) ---")
+    fa = fixed_age_lift(norm_wide, first_idx, cohort_idx, kev_dates)
+    for r in fa:
+        print(f"    age {r['age_months']:>2} mo: n={r['n']:>7,} flagged {r['flagged']:>5,} "
+              f"later listed {r['later_listed']:>3}  precision {r['precision']:.3f} vs base "
+              f"{r['base_rate']:.4f}  lift {r['lift']:.0f}x  recall {r['recall']:.0%}")
+    out["fixed_age_leading_indicator"] = fa
+
+    RESULTS.parent.mkdir(parents=True, exist_ok=True)
+    RESULTS.write_text(json.dumps(out, indent=1, default=lambda o: o.item()
+                                  if hasattr(o, "item") else str(o)))
+    print(f"\n  wrote {RESULTS}")
+
     print("\n  READING: pre-listing LEV covers fewer 30-day windows, so it is lower")
     print("  partly through elapsed time alone.  What it does show without that")
     print("  confound is what a defender relying on LEV would have seen before CISA")
