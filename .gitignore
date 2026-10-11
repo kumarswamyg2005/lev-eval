@@ -3,3 +3,4 @@ cache/
 __pycache__/
 *.pyc
 paper/draft.html
+.DS_Store

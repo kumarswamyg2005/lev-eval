@@ -34,6 +34,7 @@ reproduce: check
 	$(PY) analysis/leakage.py
 	$(PY) analysis/capture_recapture.py
 	$(PY) analysis/recalibrate.py
+	$(PY) analysis/learned_lev.py
 	@echo
 	@echo "figures/: $$(ls figures | tr '\n' ' ')"
 

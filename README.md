@@ -36,6 +36,7 @@ Every script is standalone and everything downloaded is cached under `cache/`
     python analysis/leakage.py        # Phase 2: KEV-as-EPSS-feature circularity
     python analysis/capture_recapture.py  # Phase 2: estimated true exploitation
     python analysis/recalibrate.py    # Phase 2: correction curve, held-out
+    python analysis/learned_lev.py    # Phase 2: learned aggregation of EPSS history vs LEV
     python analysis/leakage.py       # circularity check: EPSS uses KEV as a feature
 
 ## Status
@@ -53,6 +54,7 @@ Every script is standalone and everything downloaded is cached under `cache/`
 | VulnCheck KEV, rebuilt without CISA and Shadowserver | `data/download_vulncheck.py` | done — tested 2026-09-28 |
 | Capture–recapture | `analysis/capture_recapture.py` | done |
 | Correction curve, prospective validation | `analysis/recalibrate.py` | done |
+| Learned aggregation vs LEV; forward leading-indicator test | `analysis/learned_lev.py` | done |
 | Paper draft | `paper/draft.md` -> `paper/draft.pdf` (`bash paper/build.sh`) | **first draft** |
 
 ### Task 4 result (dn = 2025-03-01, 67 monthly snapshots)
