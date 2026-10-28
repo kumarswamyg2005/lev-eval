@@ -324,11 +324,12 @@ marked with an `ASSUMPTION` / `PROXY` comment at the point it is made.
    against it is judged on home ground. Without SENSOR no log-linear estimate
    is identified, but counting gives 2.10x pooled and 2.25x at the top, in line
    with the primary result.
-49. **The prior-work search was targeted, not systematic.** It covered arXiv
-   and the web for LEV evaluations and exploitation capture–recapture through
-   2026-09-28 and found neither. A systematic sweep of arXiv cs.CR, WEIS,
-   eCrime, CCS, S&P, USENIX Security and NDSS from June 2025 is required before
-   the novelty claim is submitted; one missed paper costs it.
+49. **The prior-work search is structured, not a formal systematic review.**
+   On 2026-10-28 it covered the arXiv API since May 2025, every paper citing
+   CSWP 41, the WEIS 2026 programme and the web (`paper/LIT-SEARCH.md`), and
+   found no LEV evaluation and no capture-recapture of exploitation lists.
+   Peer-reviewed work not on arXiv may be missed; re-run the queries the week
+   before submission.
 50. **The correction curve is not stationary** (`recalibrate.py`). Fitted a
    year earlier it under-predicts by 28-39% on new CVEs, because LEV's meaning
    depends on CVE age. A deployed correction must be refitted periodically or

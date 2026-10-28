@@ -9,6 +9,10 @@ exploitation catalogue (CISA KEV) rather than to LEV? The paper is
 - [docs/RESULTS.md](docs/RESULTS.md): per-task results and narrative (pre-review numbers)
 - [docs/THREATS.md](docs/THREATS.md): the numbered threats to validity
 - [DATA_SNAPSHOT.md](DATA_SNAPSHOT.md): provenance and hashes of every input
+- `results/truth_bounds_no_vulncheck.csv`: the released per-CVE truth bounds
+  (see `analysis/truth_bounds.py`). The primary-list version,
+  `results/truth_bounds.csv`, contains VulnCheck-derived flags and is
+  gitignored until VulnCheck agrees to its release
 
 ## Setup
 
@@ -33,7 +37,7 @@ override with `make PY=/path/to/python ...`.
 
 `reproduce` runs, in order: `validate`, `reconcile`, `calibration`, `dn_sweep`,
 `epss_drift`, `version_normalize`, `plateau`, `top_bucket`, `vendor_ceiling`,
-`sampling_error`, `leakage`, `capture_recapture`, `recalibrate`, `learned_lev`
+`sampling_error`, `leakage`, `capture_recapture`, `truth_bounds`, `recalibrate`, `learned_lev`
 (all in `analysis/`). Each script also runs on its own: `python analysis/<name>.py`.
 
 **Runtime.** Not yet timed end to end; `fetch` is dominated by the 586 MB CVE

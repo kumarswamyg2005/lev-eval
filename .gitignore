@@ -4,3 +4,7 @@ __pycache__/
 *.pyc
 paper/draft.html
 .DS_Store
+# VulnCheck-derived per-CVE rows: not redistributable until VulnCheck agrees
+results/truth_bounds.csv
+paper/draft-anon.html
+paper/draft-anon.pdf

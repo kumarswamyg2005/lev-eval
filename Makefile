@@ -37,6 +37,8 @@ reproduce: check
 	$(PY) analysis/sampling_error.py
 	$(PY) analysis/leakage.py
 	$(PY) analysis/capture_recapture.py
+	$(PY) analysis/truth_bounds.py
+	$(PY) analysis/truth_bounds.py --no-vulncheck
 	$(PY) analysis/recalibrate.py
 	$(PY) analysis/learned_lev.py
 	@echo

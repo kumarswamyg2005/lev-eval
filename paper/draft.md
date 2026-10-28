@@ -1,35 +1,28 @@
 ---
 title: "What KEV Misses, and What It Does to LEV: An Empirical Evaluation of NIST's Likely Exploited Vulnerabilities Metric"
-author: "[Author names and affiliations]"
-date: "Draft, 11 October 2026"
+author: "Gurram Naga Kumaraswamy, [Supervisor name], [Affiliation]"
+date: "Draft, 28 October 2026"
 ---
 
 # Abstract
 
-NIST's Cybersecurity White Paper 41 proposed Likely Exploited Vulnerabilities
-(LEV), a probability that a CVE has already been exploited, computed by
-compounding the CVE's EPSS history. It suggested using LEV to find exploited
-CVEs missing from CISA's Known Exploited Vulnerabilities (KEV) catalogue. We
-report what we believe is the first empirical evaluation of LEV.
+Vulnerability prioritization methods are routinely validated against CISA's
+Known Exploited Vulnerabilities (KEV) catalogue, as if KEV listed every
+exploited CVE. We measure what that assumption costs, using NIST's proposed
+Likely Exploited Vulnerabilities (LEV) metric as the case study. LEV compounds
+a CVE's EPSS history into a probability of past exploitation. We report what
+we believe is its first empirical evaluation.
 
-Against KEV, LEV over-predicts by 17.3x on 105,250 CVEs. Two effects in its
-inputs inflate it. The EPSS v4 release rescaled scores overnight, accounting
-for 27-29% of LEV's mass. And LEV keeps growing, because EPSS rises rather than
-decays for CVEs no list records.
-
-To separate LEV's error from KEV's incompleteness, we audit four exploitation
-lists for dependence. Two silently contain KEV, and a third contains a fourth.
-We then apply capture-recapture estimation, with explicit rules for when an
-estimate may be reported. KEV records at most 32% of the exploited CVEs that
-three evidence-citing lists observe. Where the estimate is identified, for LEV
-of 0.9 or above, LEV averages 0.985 but an estimated 48% of those CVEs were
-exploited. That is about 2x over-confident, not the 4.5x that KEV suggests.
-Lower strata are not identified.
-
-A monotone correction calibrates LEV a year ahead but drifts with CVE age, and
-a learned aggregation of the same EPSS history does no better. Most new
-listings (59-75%) concern CVEs first scored within the previous 30 days, out of
-reach of any metric built on a CVE's history.
+Against KEV, LEV over-predicts 17.3x. Part of that is in LEV's inputs: it
+multiplies across EPSS model releases that rescale every score overnight, and
+EPSS rises, rather than decays, for CVEs no list records. To separate LEV's
+error from KEV's blind spots, we audit four exploitation lists for dependence,
+finding that two silently contain KEV, and apply capture-recapture estimation
+with pre-declared rules for when an estimate may be reported. KEV records at
+most 32% of the exploited CVEs that three evidence-citing lists observe. For
+LEV of 0.9 or above, the one stratum where the estimate is identified, LEV is
+about 2x over-confident, not the 4.5x that KEV suggests. We release per-CVE
+truth bounds so that other methods can be re-scored the same way.
 
 # 1 Introduction
 
@@ -94,7 +87,10 @@ Our contributions:
    soon after publication for any history-based metric to anticipate.
 
 All data snapshots, hashes and code are released, and one command regenerates
-every number in this paper (Section 11).
+every number in this paper (Section 11). We also release the per-CVE truth
+bounds behind Section 5.6: for each of 54,612 CVEs, a lower bound and, where
+identified, an estimate of the probability that it was exploited, so that any
+prioritization method can be re-scored against more than KEV.
 
 # 2 Background
 
@@ -701,6 +697,30 @@ actionable exploitation. Against sources closer to EPSS's own definition, LEV
 in its top stratum looks about twice too confident rather than four or five
 times.
 
+**Implications for policy and practice.** KEV's selectivity is deliberate.
+Under BOD 22-01 every entry is a remediation deadline for federal agencies, so
+it must be confirmed and actionable [4]. The problem is not KEV but its second
+life as ground truth.
+
+- *Evaluations and vendor claims.* "Catches X% of KEV" measures agreement with
+  CISA's visibility, which here covers at most a third of observed
+  exploitation. A method that finds exploited CVEs KEV has missed, the use the
+  white paper proposes for LEV, is penalised for it.
+- *The cost of acting on LEV.* Read as triage, the strata translate into work
+  per exploited CVE found. Against KEV, a defender working through LEV ≥ 0.9
+  examines about 4.6 CVEs per hit; against the estimated truth, about 2.1. In
+  the middle stratum it is at most about 8 (Chao), and in the lowest at most
+  about 89. KEV-based figures more than double the apparent cost of working
+  the top of the list.
+- *Stable inputs.* A metric that compounds EPSS history is only as stable as
+  that history. Publishing cross-version mappings or back-scored history at
+  each EPSS release, and stating the analysis date and model version with every
+  published LEV value, would remove the artifact of Section 5.3 at its source.
+- *Auditable provenance.* The dependence audit was possible only because
+  VulnCheck publishes the source of every report behind each entry. Catalogues
+  that publish per-entry provenance can be combined; catalogues that do not
+  can only be compared.
+
 # 7 Threats to validity
 
 We record 55 threats in the released repository (`docs/THREATS.md`). The ones
@@ -749,8 +769,13 @@ that bear most on the conclusions:
   range.
 - **KEV dates.** `dateAdded` is a cataloguing date, so timing comparisons are
   lagged by an unknown amount.
-- **Search scope.** Our search for prior work covered 30 queries across arXiv
-  and the web, plus the venues in Section 8. It was not a systematic review.
+- **Search scope.** On 2026-10-28 we queried the arXiv API for every paper
+  since May 2025 matching "likely exploited", EPSS, "known exploited
+  vulnerabilities", "exploited in the wild", or capture-recapture with
+  vulnerabilities, screened the abstracts, read every paper that cites the
+  white paper, checked the WEIS 2026 programme, and ran web searches. This is
+  a structured search, not a formal systematic review, and peer-reviewed work
+  not on arXiv may be missed.
 
 # 8 Related work
 
@@ -762,24 +787,35 @@ EPSS:
 - exploit-development forecasting [30];
 - exploit prediction for remediation policy [32].
 
-EPSS was introduced by Jacobs et al. [2] and extended in version 3 [3]. Parla
-evaluates EPSS on high-severity CVEs in KEV [19]. Koscinski et al. document how
-often vulnerability scores disagree [35]. Nucleus Security reports that EPSS
-moves far more after KEV listing than before [43], consistent with Section 5.5.
-None of these evaluates LEV.
+Field measurements found that only a minority of disclosed vulnerabilities are
+ever exploited in the wild: no product studied had more than 35% [47]. EPSS was introduced by Jacobs et
+al. [2] and extended in version 3 [3]. Parla evaluates EPSS on high-severity
+CVEs in KEV [19]. Koscinski et al. document how often vulnerability scores
+disagree [35]. Nucleus Security reports that EPSS moves far more after KEV
+listing than before [43], consistent with Section 5.5. Mell et al. note that
+EPSS's training labels come mainly from network intrusion-detection sensors,
+which can miss exploitation that only other mechanisms see [52]. None of these
+evaluates LEV.
 
 **LEV.** Beyond the white paper [1], an independent reimplementation by the
 Risk Based Prioritization project questions LEV's small-probability
 approximation and its independence assumption [20]. It does not validate LEV
 against exploitation data. LEV is already consumed downstream: Huang et al. use
 it, alongside EPSS and KEV, as an exposure probability for incident mitigation
-in cyber-physical systems [26]. We found no empirical evaluation of LEV.
+in cyber-physical systems [26], and newer prioritization work cites it as an
+EPSS complement without testing it [48]. We found no empirical evaluation of
+LEV.
 
-**KEV as ground truth.** Recent frameworks combine CVSS, EPSS and KEV [21],
-build composite risk indicators evaluated on KEV [22], or train a ranking model
-with KEV entries as weak supervision [23]. Shaffer and Voicu model exploitation
-hazard with a decay calibrated on KEV timing [24]; our cohorts show EPSS rising,
-not decaying.
+**KEV as ground truth.** Recent frameworks combine CVSS, EPSS and KEV [21, 50],
+build composite risk indicators evaluated on KEV [22], train a ranking model
+with KEV entries as weak supervision [23], or order dependency upgrades by KEV
+membership [49]. Prospective evaluations increasingly guard against temporal
+leakage in the evidence [51], but the label itself is still taken as complete.
+The GitHub Popularity Metric is evaluated against CISA KEV and against a pooled
+set that also includes VulnCheck's KEV [48]; our audit shows that the latter
+contains the former by construction, so the pooled set is not an independent
+second check. Shaffer and Voicu model exploitation hazard with a decay
+calibrated on KEV timing [24]; our cohorts show EPSS rising, not decaying.
 
 Industry analyses already show that KEV is incomplete and lagging [18, 41, 42],
 and CIRCL has compared five KEV-style catalogues descriptively [40]. We add a
@@ -794,12 +830,15 @@ follow the temporal-split and label-quality guidance of the security-ML
 pitfalls literature [28, 29].
 
 **Multiple-systems estimation.** Capture-recapture over administrative lists is
-standard in epidemiology [12]. It has been used to estimate casualties and
-modern slavery, where its sensitivity to list dependence and sparse,
-non-overlapping cells is well documented [25, 36]. In software engineering it
-estimates defects missed by inspections [39]. Overlap between independent
-discoveries has been used to estimate vulnerability rediscovery rates [37, 38].
-We found no prior application to vulnerability exploitation.
+standard in epidemiology [12] and in public policy [46]. It has been used to
+estimate casualties and modern slavery, where its sensitivity to list
+dependence and sparse, non-overlapping cells is well documented [25, 36]. In
+software engineering it estimates defects missed by inspections [39]. Closest
+to our setting, Meurs et al. link police reports, incident-response cases and
+leak sites to estimate the number of ransomware attacks on Dutch businesses
+[8]. Overlap between independent discoveries has been used to estimate
+vulnerability rediscovery rates [37, 38]. We found no prior application to
+vulnerability exploitation.
 
 # 9 Conclusion
 
@@ -840,13 +879,24 @@ personal data is processed.
   community token, and all other results reproduce without it.
 - Telegram-derived sightings are used only as aggregated counts per CVE, as
   CIRCL publishes them.
+- The released per-CVE truth bounds name no person or organisation; they hold
+  CVE identifiers, LEV values, list membership and probabilities.
 
 # 11 Data and code availability
 
-[Repository URL]. `make fetch` downloads the pinned inputs, `make verify-data`
-checks them against recorded hashes, and `make reproduce` regenerates every
-table and figure offline. SHA-256 hashes, release tags and retrieval dates for
-all inputs are listed in `DATA_SNAPSHOT.md`.
+The code, pinned data and per-CVE truth bounds are archived at [DOI on
+release]. `make fetch` downloads the pinned inputs, `make verify-data` checks
+them against recorded hashes, and `make reproduce` regenerates every table and
+figure offline. SHA-256 hashes, release tags and retrieval dates for all inputs
+are listed in `DATA_SNAPSHOT.md`.
+
+The truth bounds (`results/truth_bounds*.csv`, `analysis/truth_bounds.py`) give
+one row per CVE in the capture-recapture population: LEV as specified and
+version-normalized, membership of each list, and the probability of
+exploitation under counting, under Chao's bound, and under the log-linear
+estimate where identified. A variant built from CISA, SENSOR and SOCIAL alone
+contains no VulnCheck-derived data; the primary-list version will be released
+if VulnCheck's terms permit.
 
 # Appendix A: a learned aggregation of EPSS history
 
@@ -973,7 +1023,7 @@ See `references.md` for full entries and verification status.
 [5] CIRCL. Vulnerability-Lookup, sightings API.
 [6] ENISA. EU Vulnerability Database API.
 [7] E. B. Wilson. Probable inference, the law of succession, and statistical inference. JASA 22(158), 1927.
-[8] S. Holm. A simple sequentially rejective multiple test procedure. Scand. J. Statistics 6(2), 1979.
+[8] T. Meurs, M. Junger, M. Cruyff, P. G. M. van der Heijden. Estimating the Number of Ransomware Attacks. Journal of Quantitative Criminology 42(2):227-243, 2026 (online July 2025). doi:10.1007/s10940-025-09625-7
 [9] G. W. Brier. Verification of forecasts expressed in terms of probability. Monthly Weather Review 78(1), 1950.
 [10] M. P. Naeini, G. Cooper, M. Hauskrecht. Obtaining well calibrated probabilities using Bayesian binning. AAAI 2015.
 [11] VulnCheck. VulnCheck KEV documentation.
@@ -1000,7 +1050,7 @@ See `references.md` for full entries and verification status.
 [32] J. Jacobs, S. Romanosky, I. Adjerid, W. Baker. Improving Vulnerability Remediation through Better Exploit Prediction. Journal of Cybersecurity 6(1), 2020.
 [33] L. Allodi and F. Massacci. Comparing Vulnerability Severity and Exploits Using Case-Control Studies. ACM TISSEC 17(1), 2014.
 [34] C. Sabottke, O. Suciu, T. Dumitras. Vulnerability Disclosure in the Age of Social Media: Exploiting Twitter for Predicting Real-World Exploits. USENIX Security 2015.
-[35] V. Koscinski, M. Nelson, A. Okutan, R. Falso, M. Mirakhorli. Conflicting Scores, Confusing Signals. arXiv:2508.13644, 2025.
+[35] V. Koscinski, M. Nelson, A. Okutan, R. Falso, M. Mirakhorli. Conflicting Scores, Confusing Signals: An Empirical Study of Vulnerability Scoring Systems. ACM CCS 2025, pp. 1904-1918.
 [36] L. Chan, B. W. Silverman, K. Vincent. Multiple Systems Estimation for Sparse Capture Data: Inferential Challenges When There Are Nonoverlapping Lists. JASA, 2020.
 [37] T. Herr, B. Schneier, C. Morris. Taking Stock: Estimating Vulnerability Rediscovery. Belfer Center, 2017.
 [38] L. Ablon and A. Bogart. Zero Days, Thousands of Nights. RAND RR-1751, 2017.
@@ -1009,5 +1059,12 @@ See `references.md` for full entries and verification status.
 [41] P. Garrity. State of Exploitation 2026. VulnCheck, January 2026.
 [42] T. Beardsley. KEVology. runZero.
 [43] T. Netzer. EPSS Score Is Predictive, but Late. Nucleus Security, May 2026.
-[44] FIRST. EPSS model release announcements (v4, 17 March 2025; v5, 15 June 2026).
-[45] S. E. Fienberg and A. Rinaldo. Maximum Likelihood Estimation in Log-Linear Models. Annals of Statistics 40(2), 2012.
+[44] FIRST. EPSS (first.org/epss), release notice for v4, 17 March 2025; J. Jacobs, Introducing EPSS Version 4, Empirical Security, 17 March 2025; Empirical Security, EPSS V5 Is Here, June 2026.
+[45] S. E. Fienberg and A. Rinaldo. Maximum Likelihood Estimation in Log-Linear Models. Annals of Statistics 40(2):996-1023, 2012.
+[46] S. M. Bird and R. King. Multiple Systems Estimation (or Capture-Recapture Estimation) to Inform Public Policy. Annual Review of Statistics and Its Application 5:95-118, 2018.
+[47] K. Nayak, D. Marino, P. Efstathopoulos, T. Dumitraş. Some Vulnerabilities Are Different Than Others: Studying Vulnerabilities and Attack Surfaces in the Wild. RAID 2014, LNCS 8688, pp. 426-446.
+[48] J. Akhoundali, K. Rietveld, O. Gadyatskaya. GitHub Engagement Signals for CVE Prioritization: The GitHub Popularity Metric (GPM). arXiv:2609.31004, 2026.
+[49] D. O. Omondi. KEVGraph: Exploitation-Aware Dependency Vulnerability Remediation. arXiv:2609.24164, 2026.
+[50] R. Podder, V. Koscinski, I. Ray. CAPE: Context-Aware Prioritization Engine for Vulnerability Scoring and Management. arXiv:2610.13071, 2026.
+[51] F. Alpay and T. Alpay. Compute-Budgeted Exploitability Evidence Graphs for Prospective Vulnerability Triage. arXiv:2606.19076, 2026.
+[52] P. Mell, I. Bojanova, C. E. Galhardo. Measuring the Exploitation of Weaknesses in the Wild. IT Professional 26(3):14-21, 2024.
