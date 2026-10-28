@@ -5,9 +5,9 @@ survival probabilities).  Here a model sees the SAME information -- the CVE's
 EPSS history, nothing else -- and learns how to aggregate it.  Restricting the
 inputs is what makes this a test of LEV's rule rather than a new predictor.
 
-Both experiments are reported as NEGATIVE / circularity results; see
-PROJECT-REVIEW.md section 9 for how the first version of this script
-over-claimed and why it was rewritten.
+Both experiments are reported as NEGATIVE / circularity results; the paper's
+Appendix A ("An apparent gain was an artifact") records how the first
+version of this script over-claimed and why it was rewritten.
 
 E1  SNAPSHOT, PROSPECTIVE (the setup of recalibrate.py / paper Sec. 5.7):
     fit at 2025-08-01 on outcomes known then, score at 2026-08-01 on CVEs the

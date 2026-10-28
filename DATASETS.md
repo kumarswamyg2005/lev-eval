@@ -173,4 +173,4 @@ June 2025 onward for LEV specifically.
 
 ## Re-running this search
 
-Prompt in `talk/RESEARCH-PROMPT.md`.
+The queries and results of the latest sweep are in `paper/LIT-SEARCH.md`.

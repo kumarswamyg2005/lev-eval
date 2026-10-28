@@ -8,3 +8,6 @@ paper/draft.html
 results/truth_bounds.csv
 paper/draft-anon.html
 paper/draft-anon.pdf
+# private working material, kept out of the public repository
+talk/
+PROJECT-REVIEW.md

@@ -73,5 +73,5 @@ Status key:
    exploitation lists found. Re-run the queries in `paper/LIT-SEARCH.md` the
    week before submission.
 3. Confirm with VulnCheck whether derived data may be published, and whether
-   the EPSS history repository has a licence (neither states one). Drafts in
-   `talk/EMAILS.md`.
+   the EPSS history repository has a licence (neither states one). Drafts are kept
+   outside the repository.

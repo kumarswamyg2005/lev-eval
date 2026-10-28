@@ -1,7 +1,7 @@
 # Appendix draft: a learned aggregation of EPSS history (negative results)
 
-Status: replaces the 11 October first draft, which over-claimed (see
-`PROJECT-REVIEW.md` §9). Every number comes from `python
+Status: replaces the 11 October first draft, which over-claimed (see the paper's
+Appendix A, "An apparent gain was an artifact"). Every number comes from `python
 analysis/learned_lev.py` → `results/learned_lev.json`, `figures/learned_lev.png`.
 LEV here is version-normalized, the same LEV as §5.6-5.7.
 

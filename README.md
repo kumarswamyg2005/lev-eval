@@ -102,7 +102,6 @@ the same commit.
     results/      generated JSON results (authoritative numbers)
     paper/        draft.md, references.md, build script
     docs/         RESULTS.md, THREATS.md; docs/archive/ holds superseded reports
-    talk/         talk material for the supervisor; not part of the artifact
     cache/        downloads and intermediates (gitignored)
     DATASETS.md   Phase 2 data-sourcing notes (2026-09-06)
 
