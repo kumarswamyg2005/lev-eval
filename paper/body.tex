@@ -91,7 +91,7 @@ a CVE is first scored for any history-based metric to anticipate.
 \end{enumerate}
 
 The code, the hashes of all data snapshots, and every snapshot whose licence
-allows it \ifanon will be\else are\fi{} released, and one command regenerates
+allows it will be released, and one command regenerates
 every number in this paper from the pinned inputs; results that use
 VulnCheck's data, which cannot be redistributed, can be re-run but not
 reproduced exactly (see the data and code availability statement). We also release per-CVE \emph{truth
@@ -1199,8 +1199,8 @@ and probabilities.
 The code, pinned data and per-CVE truth bounds will be archived with a DOI on
 publication; the repository is withheld here for anonymity.
 \else
-The code, pinned data and per-CVE truth bounds are archived at [DOI on
-release].
+The code, pinned data and per-CVE truth bounds will be archived with a DOI on
+publication.
 \fi
 \texttt{make fetch} downloads the inputs that are not committed with the code
 (EPSS, the CVE List and, with a token, VulnCheck's current feed),
@@ -1214,14 +1214,11 @@ give one row per CVE in the capture-recapture population: LEV as specified and
 version-normalized, membership of each list, and the probability of exploitation
 under counting, under Chao's bound, and under the log-linear estimate where it
 is identified. A variant built from CISA, SENSOR and SOCIAL alone contains no
-VulnCheck-derived data and \ifanon will be released with the code\else is
-released now\fi; the primary-list version will be released if VulnCheck's
+VulnCheck-derived data and will be released with the code; the primary-list version will be released if VulnCheck's
 terms permit.
 
 \ifanon\else
-\section*{Acknowledgements}
-[To be completed.]
-
 \section*{Funding and conflicts of interest}
-[To be completed. The authors declare no conflict of interest.]
+This research received no specific funding. The authors declare no conflict
+of interest.
 \fi
