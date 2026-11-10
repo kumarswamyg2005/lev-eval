@@ -45,7 +45,8 @@ marked with an `ASSUMPTION` / `PROXY` comment at the point it is made.
    year after their ID was reserved.
 8. **Analysis date** (`validate.py`). LEV grows monotonically with the
    observation window, so Table 5 is only reproducible at roughly the paper's
-   own analysis date. CSWP 41 does not state it; 2025-03-01 is used.
+   own analysis date. CSWP 41 gives it (2025-01-16) and that date is used; the
+   "all CVEs" row is not reproduced on the white paper's population (+78%).
 9. **KEV is a lower bound, not ground truth** (`calibration.py`). CISA lists
    only exploitation it confirms *and* prioritises for federal remediation.
    The 17.3x gap is an upper bound on LEV's over-confidence: an unknown share
@@ -59,16 +60,16 @@ marked with an `ASSUMPTION` / `PROXY` comment at the point it is made.
    KEV hits sit in the top bucket, so the top bucket's observed rate is the
    most sensitive number in the table to this choice.
 11. **The Task 4 / Task 5 population gap was `dn`, not a filter bug**
-   (`reconcile.py`). Mean LEV 0.016 vs 0.081 decomposes as 3.67x from moving
-   the analysis date 2025-03-01 -> 2026-08-01 and 1.36x from the 6-month
-   censoring filter. On the 68,318 CVEs in *both* populations, with the set
-   held fixed, the `dn` shift alone moves the mean 6.62x. **Every calibration
+   (`reconcile.py`). Mean LEV 0.016 vs 0.081 decomposes as 3.72x from moving
+   the analysis date 2025-01-16 -> 2026-08-01 and 1.36x from the 6-month
+   censoring filter. On the 60,934 CVEs in *both* populations, with the set
+   held fixed, the `dn` shift alone moves the mean 7.02x. **Every calibration
    number in this repo uses the Task 5 population** (`dn` = latest snapshot),
    because KEV membership is observed through the present and LEV must be
-   computed to the same date. `dn` = 2025-03-01 is used only to reproduce
+   computed to the same date. `dn` = 2025-01-16 is used only to reproduce
    Table 5. Consequence: Table 5 agreement validates the *implementation*, not
    the absolute LEV values used for calibration — recomputed on the Task 5
-   filtered set the 2023-03-07 row reads +52% at 2025-03-01 and +441% at
+   filtered set the 2023-03-07 row reads +43% at 2025-01-16 and +441% at
    2026-08-01.
 12. **`dn`-dependence is structural; only the rate is empirical**
    (`dn_sweep.py`). LEV is a product over 30-day windows and cannot decrease
@@ -333,21 +334,24 @@ marked with an `ASSUMPTION` / `PROXY` comment at the point it is made.
 50. **The correction curve is not stationary** (`recalibrate.py`). Fitted a
    year earlier it under-predicts by 28-39% on new CVEs, because LEV's meaning
    depends on CVE age. A deployed correction must be refitted periodically or
-   conditioned on age; the age-conditioned variant recovers only about a
-   quarter of the drift.
+   conditioned on age; the age-conditioned variant narrows the KEV shortfall
+   only from 34% to 28%.
 51. **The capture–recapture population is short-lived** (`capture_recapture.py`).
    SENSOR starts 2024-10-24, so the population is CVEs first scored in a
    15-month window, each observed for 6-21 months. Results describe recently
    published CVEs. The full-cohort sensitivity run (older CVEs, over-confidence
    2.32x log-linear) is biased because the sensor could not see their early
-   exploitation.
+   exploitation. "First scored" means the first monthly snapshot, so 2,365
+   members (4%, all dated 2024-11-01) were in fact scored a few days before
+   SENSOR began (`population.scored_by_2024_10_22`).
 52. **VulnCheck precision carries the estimates** (`capture_recapture.py`).
-   With four lists, 84-99% of single-list captures are VulnCheck-only, and 65%
-   of VulnCheck-only CVEs rest on one text report (median one report per CVE).
-   The strict configuration (sensor-observed or >= 2 independent sources,
-   2,912 CVEs) keeps the top-stratum result (2.12x). Its pooled estimate
-   (2.64x, N 709) falls below the sum of per-stratum Chao bounds (721), so it
-   is not identified, and the middle stratum's 2.47x does not survive it.
+   With the primary lists, 398 of the 430 single-list captures (93%) are
+   VulnCheck-only, and 38% of those 398 rest on one source with no sensor
+   evidence (151; `vulncheck_only_not_strict`). The strict configuration
+   (sensor-observed or >= 2 independent sources, 2,912 CVEs) keeps the
+   top-stratum result (2.12x [1.86, 2.45]). Its pooled estimate (2.64x) passes
+   the identification rules but pools strata that are not identified, so it is
+   not claimed; the middle stratum is not identified under either list set.
 53. **The four-list results need a VulnCheck token to reproduce**
    (`download_vulncheck.py`, `DATA_SNAPSHOT.md`). VulnCheck's terms are silent
    on redistribution, so the snapshot stays in gitignored `cache/` and its hash

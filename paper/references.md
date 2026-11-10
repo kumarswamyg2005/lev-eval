@@ -11,7 +11,7 @@ Status key:
 |---|---|---|
 | 1 | P. Mell and J. Spring. *Likely Exploited Vulnerabilities: A Proposed Metric for Vulnerability Exploitation Probability.* NIST Cybersecurity White Paper 41, 19 May 2025. doi:10.6028/NIST.CSWP.41 | verified |
 | 2 | J. Jacobs, S. Romanosky, B. Edwards, I. Adjerid, M. Roytman. *Exploit Prediction Scoring System (EPSS).* Digital Threats: Research and Practice 2(3):1-17, 2021. doi:10.1145/3436242 | verified 2026-10-28 (Crossref); author order confirmed |
-| 3 | J. Jacobs, S. Romanosky, O. Suciu, B. Edwards, A. Sarabi. *Enhancing Vulnerability Prioritization: Data-Driven Exploit Predictions with Community-Driven Insights.* arXiv:2302.14172, 2023. | verified (arXiv preprint; no formal venue listed) |
+| 3 | J. Jacobs, S. Romanosky, O. Suciu, B. Edwards, A. Sarabi. *Enhancing Vulnerability Prioritization: Data-Driven Exploit Predictions with Community-Driven Insights.* In *2023 IEEE European Symposium on Security and Privacy Workshops (EuroS&PW)*, pp. 194-206. doi:10.1109/EuroSPW59978.2023.00027 (presented at WEIS 2023; arXiv:2302.14172). | verified against Crossref 2026-11-11 |
 | 4 | CISA. *Known Exploited Vulnerabilities Catalog*, and Binding Operational Directive 22-01. | web |
 | 5 | CIRCL. *Vulnerability-Lookup*, sightings API. vulnerability.circl.lu | web, accessed 2026-09-28 |
 | 6 | ENISA. *EU Vulnerability Database* API. euvdservices.enisa.europa.eu | web, accessed 2026-09-28 |
@@ -29,12 +29,12 @@ Status key:
 | 18 | M. Roytman. *The KEV Paradox.* Empirical Security, January 2026. research.empiricalsecurity.com/research/the-kev-paradox | web, verified 2026-09-28 |
 | 19 | R. Parla. *Efficacy of EPSS in High Severity CVEs found in KEV.* arXiv:2411.02618, 2024. | verified |
 | 20 | Risk Based Prioritization project. *NIST LEV.* riskbasedprioritization.github.io/epss/LEV | web, verified 2026-09-28; states it is not associated with the CSWP 41 authors |
-| 21 | N. Shimizu and M. Hashimoto. *Vulnerability Management Chaining: An Integrated Framework for Efficient Cybersecurity Risk Prioritization.* arXiv:2506.01220, 2025. | verified |
+| 21 | N. Shimizu and M. Hashimoto. *Vulnerability Management Chaining: An Integrated Framework for Efficient Cybersecurity Risk Prioritization.* IEEE Access 14:31407-31424, 2026. doi:10.1109/ACCESS.2026.3665768 (preprint arXiv:2506.01220) | verified 2026-11-08 (Crossref); now published |
 | 22 | E. Sherif, I. Yevseyeva, V. Basto-Fernandes, A. Cook. *Bridging the Gap Between Security Metrics and Key Risk Indicators: An Empirical Framework for Vulnerability Prioritization.* arXiv:2603.12450, 2026. | verified |
 | 23 | S. Motamedi Sedeh, P. Shahrivar, M. Qureshi, A. Devjiani, M. A. Tayebi. *ThreatLens: Evidence-Guided Ranking of High-Priority CVEs.* arXiv:2608.22306, 2026. | verified |
 | 24 | S. Shaffer and L. Voicu. *Modeling Local Exploit Hazard: A Bayesian Framework for Quantifying Exploit Risk and Operational Efficiency.* arXiv:2607.24618, 2026. | verified |
 | 25 | O. Binette and R. C. Steorts. *On the Reliability of Multiple Systems Estimation for the Quantification of Modern Slavery.* JRSS Series A 185(2):640-676, 2022. arXiv:2112.01594. | verified 2026-10-28 (Crossref) |
-| 26 | S. Huang, C. M. Poskitt, L. K. Shar. *Bayesian and Multi-Objective Decision Support for Incident Mitigation in Cyber-Physical Systems.* arXiv:2509.00770, 2025. | verified 2026-09-29 (uses LEV as an input; does not evaluate it) |
+| 26 | S. Huang, C. M. Poskitt, L. K. Shar. *Bayesian and Multi-Objective Decision Support for Incident Mitigation in Cyber-Physical Systems.* IEEE Access 14:148923-148942, 2026. doi:10.1109/ACCESS.2026.3735972 (preprint arXiv:2509.00770) | verified 2026-11-08 (Crossref); now published; uses LEV as an input, does not evaluate it |
 | 27 | C. Elkan and K. Noto. *Learning Classifiers from Only Positive and Unlabeled Data.* KDD 2008, pp. 213-220. | verified 2026-10-11 |
 | 28 | D. Arp, E. Quiring, F. Pendlebury, A. Warnecke, F. Pierazzi, C. Wressnegger, L. Cavallaro, K. Rieck. *Dos and Don'ts of Machine Learning in Computer Security.* USENIX Security 2022. arXiv:2010.09470 | verified 2026-10-11 |
 | 29 | F. Pendlebury, F. Pierazzi, R. Jordaney, J. Kinder, L. Cavallaro. *TESSERACT: Eliminating Experimental Bias in Malware Classification across Space and Time.* USENIX Security 2019, pp. 729-746. | verified 2026-10-11 |
@@ -61,6 +61,7 @@ Status key:
 | 49 | D. O. Omondi. *KEVGraph: Exploitation-Aware Dependency Vulnerability Remediation.* arXiv:2609.24164, 2026. | verified 2026-10-28 (arXiv) |
 | 50 | R. Podder, V. Koscinski, I. Ray. *CAPE: Context-Aware Prioritization Engine for Vulnerability Scoring and Management.* arXiv:2610.13071, 2026. | verified 2026-10-28 (arXiv) |
 | 51 | F. Alpay and T. Alpay. *Compute-Budgeted Exploitability Evidence Graphs for Prospective Vulnerability Triage.* arXiv:2606.19076, 2026. | verified 2026-10-28 (arXiv) |
+| 53 | N. Lu and D. Stiawan. *Queue Shock at Model Upgrades: A Longitudinal Audit of EPSS v2-v5 Rank Stability and Prioritization Workload.* Cybersecurity Advances 3(1):1-11, 30 Oct 2026. doi:10.68556/cpz38s22 | verified 2026-11-08 (Crossref); concurrent work on EPSS release discontinuities; cites CSWP 41, does not evaluate LEV |
 | 52 | P. Mell, I. Bojanova, C. E. Galhardo. *Measuring the Exploitation of Weaknesses in the Wild.* IT Professional 26(3):14-21, 2024. doi:10.1109/MITP.2024.3399485 | verified 2026-10-28 (Crossref) |
 
 ## Before submission
@@ -75,3 +76,37 @@ Status key:
 3. Confirm with VulnCheck whether derived data may be published, and whether
    the EPSS history repository has a licence (neither states one). Drafts are kept
    outside the repository.
+
+## Re-check 2026-11-08 (all 53 entries)
+
+Every entry with a DOI was resolved through doi.org (title, year, authors,
+volume, pages compared); arXiv entries through the arXiv API; USENIX papers
+through usenix.org citation metadata; web sources by HTTP 200. Changes made in
+refs.bib:
+- Naeini et al.: first author is "Pakdaman Naeini, M." (Crossref).
+- Arp et al.: pages 3971-3988; Sabottke et al.: pages 1041-1056 (usenix.org).
+- Platt: editors added (Smola, Bartlett, Schölkopf, Schuurmans); year 2000,
+  the book's date in the MIT Press record (10.7551/mitpress/1113.001.0001).
+- DOIs added: Brier 1950, Zadrozny & Elkan 2002, Elkan & Noto 2008,
+  Binette & Steorts 2022, Bekker & Davis 2020, Chan et al. 2021,
+  Burnham & Anderson 2002 (10.1007/b97636).
+- Allodi & Massacci: article pages 1:1-1:20.
+- KEVology: full title and date (4 February 2026, from the page's
+  datePublished); VulnCheck State of Exploitation: date 21 January 2026.
+- Meurs et al.: online 29 July 2025, issue 42(2) June 2026; 2026 kept.
+Not resolvable by API: Herr et al. 2017 (Belfer Center page returns 200),
+Ablon & Bogart 2017 (RAND blocks automated requests; RR-1751 as before).
+
+## Added 2026-11-11 (all verified against Crossref that day)
+
+- A. Chao. *Estimating Population Size for Sparse Data in Capture-Recapture
+  Experiments.* Biometrics 45(2):427-438, 1989. doi:10.2307/2531487 (the
+  (t-1)/t form of the lower bound used in Eq. 5).
+- W. K. Newey and K. D. West. *A Simple, Positive Semi-Definite,
+  Heteroskedasticity and Autocorrelation Consistent Covariance Matrix.*
+  Econometrica 55(3):703-708, 1987. doi:10.2307/1913610.
+- H. R. Kunsch. *The Jackknife and the Bootstrap for General Stationary
+  Observations.* Annals of Statistics 17(3):1217-1241, 1989.
+  doi:10.1214/aos/1176347265.
+- P. Armitage. *Tests for Linear Trends in Proportions and Frequencies.*
+  Biometrics 11(3):375-386, 1955. doi:10.2307/3001775.

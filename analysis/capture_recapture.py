@@ -69,7 +69,7 @@ BOOT = 1000
 # A fitted coefficient this large means IRLS was walking towards the +-30
 # clip on the linear predictor in _fit_poisson: the MLE does not exist.
 BOUNDARY_BETA = 25.0
-RNG = np.random.default_rng(20260928)          # fixed: the CI is part of the result
+SEED = 20260928                                # fixed: the CI is part of the result
 
 # LEV strata used both to absorb capture heterogeneity and to form the
 # calibration curve.  Three, not ten: each stratum needs enough captured units
@@ -214,14 +214,21 @@ def loglinear(H):
 
 
 def bootstrap_ci(H, inter):
-    """Parametric Poisson bootstrap of N_hat for one fixed model."""
+    """Parametric Poisson bootstrap of N_hat for one fixed model.
+
+    Seeded from the cell counts, so the same table and model give the same
+    interval whichever analysis asks for it.  (A generator shared across calls
+    gave one stratum three intervals, differing in the second decimal, because
+    each call drew from a different point of the stream.)
+    """
     k = H.shape[1]
     y = cell_counts(H)
     _, X = _design(k, inter)
     _, mu, _ = _fit_poisson(X, y)
+    rng = np.random.default_rng([SEED, k, *y.astype(np.int64)])
     draws = []
     for _ in range(BOOT):
-        yb = RNG.poisson(mu).astype(float)
+        yb = rng.poisson(mu).astype(float)
         if yb.sum() == 0:
             continue
         b, _, _ = _fit_poisson(X, yb)
@@ -524,6 +531,12 @@ def main():
     # recapture cannot do without.  Six-month maturity as in Phase 1.
     prim = nbf & (fd >= SENSOR_START) & (fd <= DN - CENSOR)
     pop = wide.index[prim]
+    # A CVE is dated by its first MONTHLY snapshot, so some of the earliest
+    # members were scored days before SENSOR began: count those already in the
+    # last daily file before SENSOR_START (paper, Methods: Population).
+    pre = pd.read_csv(download_epss.fetch("2024-10-22"), comment="#", usecols=[0]).iloc[:, 0]
+    n_pre_sensor = int(pop.isin(pre).sum())
+    print(f"population: {len(pop):,} CVEs; {n_pre_sensor:,} already scored on 2024-10-22")
     H_all = histories(pop, lists)
     # PRIMARY LEV is from version-normalized EPSS (the paper's choice); raw LEV
     # from the un-normalized scores is the disclosed companion.  Strata are
@@ -542,10 +555,13 @@ def main():
           f"{(DN - CENSOR).date()} (N={len(pop):,})\n{'=' * 90}")
     print("  capture counts: " + "  ".join(f"{c}={int(H[c].sum())}" for c in H))
     print("\n  pairwise Chapman estimates -- these AGREE only if lists are independent:")
-    for a, b in itertools.combinations(H.columns, 2):
-        N, n1, n2, m = chapman(H, a, b)
+    pair_n = []
+    for a, b in itertools.combinations([c for c in H_all.columns if c != "VULNCHK_STRICT"], 2):
+        N, n1, n2, m = chapman(H_all, a, b)
+        pair_n.append(N)
         print(f"    {a:>7} x {b:<7} n1={n1:<4} n2={n2:<4} overlap={m:<4} N={N:,.0f}")
-    print("  -> they disagree by >2x, so list dependence must be modelled.")
+    print(f"  -> {min(pair_n):,.0f} to {max(pair_n):,.0f}, a factor of "
+          f"{max(pair_n) / min(pair_n):.1f}: list dependence must be modelled.")
 
     overall = estimate(H, "ALL LEV, 3-list log-linear", floor=stratified_chao_lo(H, lev))
 
@@ -693,6 +709,97 @@ def main():
                       f"both {d['SENSOR_and_VULNCHK']:>4}")
         extra["SENSOR_VULNCHK_overlap"] = ov
 
+        # (e) VulnCheck precision: VulnCheck-only captures that fail the strict
+        # rule (no sensor evidence, one reporting host) -- what the strict
+        # configuration drops.
+        if "VULNCHK_STRICT" in H_all.columns:
+            b = lambda c: H_all[c].astype(bool)
+            vo = b("VULNCHK") & ~b("CISA") & ~b("SENSOR")
+            weak = vo & ~b("VULNCHK_STRICT")
+            extra["vulncheck_only_not_strict"] = {
+                "single_list_captures": int((H.sum(axis=1) == 1).sum()),
+                "vulncheck_only": int(vo.sum()), "not_strict": int(weak.sum()),
+                "share": float(weak.sum() / vo.sum())}
+            print(f"\n  (e) VulnCheck-only captures failing the strict rule: "
+                  f"{int(weak.sum())} of {int(vo.sum())} ({weak.sum() / vo.sum():.0%})")
+
+    # (d) Circularity: KEV is an EPSS input, so listing can raise a CVE's LEV
+    # into the top stratum.  Re-stratify on LEV computed only from snapshots
+    # dated strictly before the CVE was listed (unlisted CVEs keep LEV at d_n),
+    # cutting at the CISA date (the documented feedback path) or at the first
+    # date on any primary list.  A CVE listed on or before its first EPSS score
+    # had no history, so its pre-listing LEV is 0.
+    # ponytail: listed CVEs get fewer windows than unlisted ones, which can only
+    # push them DOWN a stratum; reported as a bound on the circularity, not a fix.
+    cols = norm_wide.columns
+    def prelisting_lev(cut):
+        out = lev.copy()
+        cut = cut.reindex(pop).dropna()
+        n_zero = 0
+        for d, ix in cut.groupby(cut).groups.items():
+            ix = pd.Index(ix)
+            has = (fd[ix] < d).to_numpy()
+            out[ix[~has]] = 0.0
+            n_zero += int((~has).sum())
+            if has.any():
+                keep = cols < d
+                out[ix[has]] = levmod.lev(norm_wide.loc[ix[has], keep], first_idx[ix[has]],
+                                          dn=d - pd.Timedelta(days=1))
+        return out, len(cut), n_zero
+    cuts = {"CISA": lists["CISA"],
+            "any primary list": pd.concat([lists[c] for c in primary], axis=1).min(axis=1)}
+
+    def strata_summary(lp, keep, tag):
+        """Per-stratum KEV/union/Chao/log-linear over-confidence on LEV `lp`."""
+        rows = {}
+        for lo_, hi_ in STRATA:
+            s = (keep & (lp >= lo_) & (lp < hi_)).to_numpy()
+            Hs, n = H[s], int(s.sum())
+            k, u = int(Hs["CISA"].sum()), int((Hs.sum(axis=1) > 0).sum())
+            chao, *_ = chao_lower_bound(Hs)
+            e = estimate(Hs, sname(lo_, hi_), verbose=False)
+            r = {"n": n, "mean_lev": float(lp[s].mean()), "kev": k, "union": u,
+                 "chao": chao, "over_kev": over(lp[s], k, n),
+                 "over_union": over(lp[s], u, n), "over_chao": over(lp[s], chao, n),
+                 "identified": bool(e.get("identified")), "reason": e.get("reason")}
+            if e.get("identified"):
+                r.update({"N_hat": e["N_hat"], "ci": e["ci"],
+                          "over_loglinear": over(lp[s], e["N_hat"], n),
+                          "over_loglinear_ci": [over(lp[s], e["ci"][1], n),
+                                                over(lp[s], e["ci"][0], n)]})
+            rows[sname(lo_, hi_)] = r
+            print(f"    {tag:<34} {sname(lo_, hi_):<15} N={n:>6,} KEV {k:>3} union {u:>3}  "
+                  f"mean LEV {r['mean_lev']:.3f}  vs KEV {r['over_kev']:.2f}x  union "
+                  f"{r['over_union']:.2f}x  Chao {r['over_chao']:.2f}x  log-linear "
+                  + (f"{r['over_loglinear']:.2f}x [{r['over_loglinear_ci'][0]:.2f}, "
+                     f"{r['over_loglinear_ci'][1]:.2f}]" if r["identified"] else "not identified"))
+        return rows
+
+    pre = {"note": ("(i) frozen: listed CVEs' LEV from snapshots strictly before "
+                    "listing, unlisted CVEs at d_n -- asymmetric, listed CVEs get "
+                    "fewer windows; (ii) fixed age: every CVE's LEV at age A from "
+                    "snapshots up to d0+A, CVEs listed by then dropped -- symmetric")}
+    print("\n  (d) circularity: strata on LEV that cannot see the listing")
+    allp = pd.Series(True, index=pop)
+    for cname, cut in cuts.items():
+        lp, n_cut, n_zero = prelisting_lev(cut)
+        pre[f"frozen at listing ({cname})"] = {
+            "listed_cves_recomputed": n_cut, "listed_without_prior_history": n_zero,
+            "strata": strata_summary(lp, allp, f"frozen before {cname}")}
+    for A in (90, 180):
+        la = pd.Series(np.nan, index=pop)
+        fdp = fd[pop]
+        for d0, ix in fdp.groupby(fdp).groups.items():
+            dA = d0 + pd.Timedelta(days=A)
+            la[ix] = levmod.lev(norm_wide.loc[ix, cols <= dA], first_idx[ix], dn=dA)
+        for cname, cut in cuts.items():
+            c = cut.reindex(pop)
+            keep = ~(c <= fdp + pd.Timedelta(days=A))      # not listed by age A
+            pre[f"LEV at age {A} days, drop listed by then ({cname})"] = {
+                "dropped": int((~keep).sum()),
+                "strata": strata_summary(la, keep, f"age {A}d, unlisted on {cname}")}
+    extra["prelisting_strata"] = pre
+
     # ------------- sensitivity: full cohort, stratified by birth period
     print(f"\n{'=' * 90}\nSENSITIVITY -- full v3-era cohort, by birth period\n{'=' * 90}")
     full = calibration.cohort(wide, first_idx, DN)
@@ -708,7 +815,7 @@ def main():
 
     # ------------------------------------------------------------- figure
     # No title: the caption lives in the paper.
-    fig, ax = plt.subplots(figsize=(7.2, 5.0))
+    fig, ax = plt.subplots(figsize=(5.0, 3.5))
     names = list(strata_ladders)
     xs = [strata_est[n]["mean_lev"] for n in names]
     def rate(name, truth):
@@ -749,7 +856,7 @@ def main():
                         color="#8a6212", style="italic")
     ax.set_xlabel("mean LEV in stratum (predicted; version-normalized EPSS)")
     ax.set_ylabel("exploitation rate under each notion of truth")
-    ax.grid(alpha=.3, which="both"); ax.legend(fontsize=7.5, loc="upper left")
+    ax.grid(alpha=.3, which="both"); ax.legend(loc="lower right")
     FIGURE.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(FIGURE, dpi=150, bbox_inches="tight")
     fig.savefig(FIGURE.with_suffix(".pdf"), bbox_inches="tight")
@@ -769,7 +876,8 @@ def main():
                                 "honest df, excluded if that leaves df 0"),
         "chao_form": "S + ((t-1)/t) f1^2/(2 f2)",
         "population": {"from": str(SENSOR_START.date()),
-                       "to": str((DN - CENSOR).date()), "N": len(pop)},
+                       "to": str((DN - CENSOR).date()), "N": len(pop),
+                       "scored_by_2024_10_22": n_pre_sensor},
         "lists": {k: len(v) for k, v in lists.items()},
         "captures": {c: int(H[c].sum()) for c in H},
         "overall_estimate": overall, "ladder": ladder, "gap_decomposition": gap,

@@ -46,7 +46,11 @@ def lev(wide, first_idx, dn=None, window=WINDOW):
     the one at the *start* of each window.
 
     When di is not a date we hold, the next available snapshot on or after di
-    is substituted -- the rule CSWP 41 Sec. 10.3 gives for missing EPSS days.  With Phase-1 monthly sampling this substitution is the
+    is substituted -- the rule CSWP 41 Sec. 10.3 gives for missing EPSS days --
+    unless that snapshot is dated after dn, in which case the last one on or
+    before dn is used: LEV at dn never reads a score published after dn.
+    (Until 2026-11-11 it could, when dn was not itself a snapshot date.)  With
+    Phase-1 monthly sampling this substitution is the
     dominant source of error: a 30-day stride against ~30.4-day spacing drifts,
     so some snapshots are reused for two windows and some are never read.
 
@@ -56,6 +60,7 @@ def lev(wide, first_idx, dn=None, window=WINDOW):
     dn = pd.Timestamp(dn or dates[-1])
     vals = wide.to_numpy(dtype="float64")
     out = np.zeros(len(wide))
+    last = max(int(np.searchsorted(dates.to_numpy(), np.datetime64(dn), "right")) - 1, 0)
 
     # d0 is always one of our snapshot dates, so there are only ~len(dates)
     # distinct window layouts -- group by them and vectorise each group.
@@ -64,9 +69,10 @@ def lev(wide, first_idx, dn=None, window=WINDOW):
         starts, weights = _windows(dates[fi], dn, window)
         if len(starts) == 0:
             continue
-        # "next available date" -> searchsorted left, clipped to the last one
+        # "next available date" -> searchsorted left, clipped to the last
+        # snapshot dated <= dn (no look-ahead)
         cols = np.clip(np.searchsorted(dates.to_numpy(), starts.to_numpy(),
-                                       "left"), 0, len(dates) - 1)
+                                       "left"), 0, last)
         p = vals[np.ix_(rows, cols)] * weights
         out[rows] = 1.0 - np.prod(1.0 - p, axis=1)
 
@@ -127,6 +133,12 @@ def _demo():
     # a window starting on dn itself counts one day: weight 1/30
     one = lev(wide, first, dn=pd.Timestamp("2024-03-01"))
     assert abs(one["c"] - 0.5 / 30) < 1e-12, one["c"]
+
+    # no look-ahead: at dn = 03-31, 'a's window starting 03-31 must read the
+    # 03-01 snapshot, not 04-01 -- so a changed 04-01 score cannot matter
+    late = wide.copy(); late.iloc[:, 3] = 0.9
+    dmid = pd.Timestamp("2024-03-31")
+    assert (lev(late, first, dn=dmid) == lev(wide.iloc[:, :3], first, dn=dmid)).all()
 
     got2 = lev2(wide, first, dn=dn)
     assert got2["b"] == 0.0

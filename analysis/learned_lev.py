@@ -287,33 +287,47 @@ def main():
         out["E1"][name] = snapshot(name, wide, first_idx, fd,
                                    te, on(idx(te), lists, ks), tr, on(idx(tr), lists_tr, ks))
 
+    # Appendix A, "An apparent gain was an artifact": the same E1 on raw
+    # (not version-normalized) EPSS, the setting of this script's first version.
+    out["E1_raw_epss"] = {}
+    for name, te, tr, ks in [("UNION", test_pop, train_pop, use),
+                             ("UNION-NO-KEV", test_pop & ~kev_te, train_pop & ~kev_tr, noncisa)]:
+        out["E1_raw_epss"][name] = snapshot(name + " [raw EPSS]", raw, first_idx, fd,
+                                            te, on(idx(te), lists, ks), tr, on(idx(tr), lists_tr, ks))
+
     first_of = lambda ks: pd.concat([lists[k] for k in ks]).groupby(level=0).min()
     for name, ks in [("UNION", use), ("CISA+SENSOR dates", ["CISA", "SENSOR"])]:
         out["E2"][name] = [forward(name, wide, first_idx, fd, born_ok, first_of(ks), t)
                            for t in ORIGINS]
 
     # ---- figure: E1 AP by target (the circularity reversal), E2 AP by origin
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.4))
+    from matplotlib.ticker import FuncFormatter, LogLocator, NullFormatter
+    fig, axes = plt.subplots(1, 2, figsize=(6.5, 3.0), layout="constrained")
     ax = axes[0]
     show = ["LEV", "EPSS now", "EPSS peak", "logistic", "GBM"]
+    name = {"EPSS now": "current EPSS", "EPSS peak": "peak EPSS", "GBM": "boosted trees"}   # paper's terms
     cols = ["#9aa7b8", "#2a9d8f", "#6a8caf", "#c1440e", "#7a5195"]
     targets = list(out["E1"])
     w = 0.16
     for i, (m, c) in enumerate(zip(show, cols)):
         ax.bar(np.arange(len(targets)) + (i - 2) * w,
-               [out["E1"][t]["scores"][m]["ap"] for t in targets], w, color=c, label=m)
+               [out["E1"][t]["scores"][m]["ap"] for t in targets], w, color=c, label=name.get(m, m))
     ax.set_xticks(range(len(targets)))
     ax.set_xticklabels(["union", "CISA KEV", "union without KEV"])
     ax.set_ylabel("average precision, held-out (prospective)")
-    ax.grid(alpha=.3, axis="y"); ax.legend(fontsize=8, ncol=2)
+    ax.grid(alpha=.3, axis="y")
     ax = axes[1]
     e2 = out["E2"]["UNION"]
     x = [r["test"]["t"] for r in e2]
     for m, c in zip(show, cols):
-        ax.plot(x, [r["scores"][m]["ap"] for r in e2], "o-", color=c, label=m)
+        ax.plot(x, [r["scores"][m]["ap"] for r in e2], "o-", color=c, label=name.get(m, m))
     ax.plot(x, [r["test"]["base_rate"] for r in e2], "--", color="gray", label="base rate")
     ax.set_ylabel("average precision, next 182 days"); ax.set_xlabel("forecast origin")
-    ax.set_yscale("log"); ax.grid(alpha=.3); ax.legend(fontsize=8, ncol=2)
+    ax.set_yscale("log"); ax.grid(alpha=.3)
+    ax.yaxis.set_major_locator(LogLocator(base=10, subs=(1, 2, 5)))
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
+    ax.yaxis.set_minor_formatter(NullFormatter())
+    fig.legend(*ax.get_legend_handles_labels(), loc="outside upper center", ncol=6)
     FIGURE.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(FIGURE, dpi=150, bbox_inches="tight")
     fig.savefig(FIGURE.with_suffix(".pdf"), bbox_inches="tight")

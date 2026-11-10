@@ -22,14 +22,25 @@
 | Learned aggregation vs LEV; forward leading-indicator test | `analysis/learned_lev.py` | done |
 | Paper draft | `paper/draft.md` -> `paper/draft.pdf` (`bash paper/build.sh`) | **first draft** |
 
-## Task 4 result (dn = 2025-03-01, 67 monthly snapshots)
+## Task 4 result (dn = 2025-01-16, the date CSWP 41 gives for Table 5; 67 monthly snapshots)
 
-| Published since | NIST Table 5 | ours (LEV) | ours (LEV2) | rel. err |
-|---|---|---|---|---|
-| 2023-03-07 | 0.015 | 0.0162 | 0.0159 | +8% |
-| 2022-02-04 | 0.047 | 0.0480 | 0.0459 | +2% |
-| 2021-04-14 | 0.087 | 0.0839 | 0.0820 | -4% |
-| all CVEs (no version restriction) | 0.146 | 0.1299 | 0.1289 | -11% |
+| Published since | NIST N | our N | NIST Table 5 | ours (LEV) | ours (LEV2) | rel. err |
+|---|---|---|---|---|---|---|
+| 2023-03-07 | 66,125 | 60,934 | 0.015 | 0.0160 | 0.0157 | +7% |
+| 2022-02-04 | 94,440 | 87,866 | 0.047 | 0.0495 | 0.0472 | +5% |
+| 2021-04-14 | 112,754 | 103,718 | 0.087 | 0.0873 | 0.0854 | +0% |
+| all CVEs | 273,979 | 272,702 | 0.146 | 0.2593 | 0.2564 | **+78% (not reproduced)** |
+| all CVEs, not backfilled | 273,979 | 123,163 | 0.146 | 0.1352 | 0.1341 | -7% (different population; not a match) |
+
+*Corrected 2026-11-11: CSWP 41 states Table 5's date (2025-01-16, Sec. 7.2 and
+the caption) and each row's CVE count. Earlier versions said the date was
+unstated, used 2025-03-01, and counted the filtered "all" row (-11%) as a
+match although it covers fewer than half the white paper's CVEs. The miss is
+in the ~164k CVEs with IDs from 2020 or earlier (`all_row_variants` in
+`results/validate_dn_grid.json`). Same day: `models/lev.py` no longer reads a
+snapshot dated after `dn` when `dn` is not a snapshot date; this moved only the
+forward test's LEV feature at two origins (`learned_lev.json`, E2), by at most
+0.0014 AP.*
 
 *Corrected 2026-09-29: `lev.py` now follows CSWP 41 Table 4 exactly --
 `datediff` counts days inclusively, so the last partial window gets one more
@@ -340,39 +351,52 @@ check; an estimate is reported only where identified.
 | CISA KEV | KEV is complete | 236 | 7.93x [6.98, 9.05] |
 | CISA or SENSOR | honeypot sightings are real | 336 | 5.57x [5.01, 6.22] |
 | union of primary lists | every listed report is real | 734 | **2.55x** [2.37, 2.75] |
-| Chao lower bound | closed population | 1,094 | **1.71x** [1.57, 1.84] |
-| log-linear | no three-way interaction | — | not identified |
+| Chao lower bound | closed population | 974 | **1.92x** [1.79, 2.04] |
+| log-linear | no three-way interaction | — | not identified (881, below Chao's 919) |
 
-**By counting alone, about two-thirds (68%) of the gap measured against KEV is
-catalogue incompleteness.** KEV recorded at most 32% of what the primary lists
-observed (22% under Chao).
+**By counting alone, 68% [64, 71] of the CVEs that any primary list records
+are absent from KEV** (60% [55, 64] with strict VulnCheck). KEV recorded at
+most 32% of what the primary lists observed (24% of Chao's bound).
 
-**Where true exploitation can be estimated, LEV over-predicts it 2-2.5x:**
+**Only the top stratum is identified; there LEV is about 2x over-confident:**
 
 | LEV stratum | N | vs KEV | union | Chao | log-linear |
 |---|---|---|---|---|---|
-| [0.0, 0.1) | 52,012 | 21.2x | 2.36x | 0.83x | not identified |
-| [0.1, 0.9) | 1,964 | 9.16x | 3.21x | 2.30x | **2.47x** [1.92, 3.08] |
-| [0.9, 1.0] | 636 | 4.54x | 2.26x | 1.96x | **2.04x** [1.81, 2.32] |
+| [0.0, 0.1) | 52,012 | 21.2x | 2.36x | 1.05x [0.83, 1.29] | not identified |
+| [0.1, 0.9) | 1,964 | 9.16x | 3.21x | 2.54x [2.24, 2.76] | not identified |
+| [0.9, 1.0] | 636 | 4.54x | 2.26x | 2.05x [1.93, 2.14] | **2.04x** [1.81, 2.32] |
 
-At LEV >= 0.9, LEV averages 0.985; an estimated 48% [42%, 55%] were exploited.
+At LEV >= 0.9, LEV averages 0.985; an estimated 48% [42%, 54%] were exploited.
 
-**List-set sensitivity** (log-linear over-confidence):
+**List-set sensitivity** (log-linear over-confidence; "not claimed" = the
+pooled population passes the rules but pools strata the stratified analysis
+rejects):
 
 | lists | LEV [0.9, 1.0] | LEV [0.1, 0.9) | all LEV |
 |---|---|---|---|
-| CISA, SENSOR, VULNCHK (primary) | 2.04x [1.81, 2.32] | 2.47x [1.92, 3.08] | not identified |
-| CISA, SENSOR, strict VULNCHK | 2.12x [1.85, 2.42] | not identified | not identified (2.64x below stratified Chao bound) |
-| CISA, SENSOR, SOCIAL | 2.07x [1.73, 2.43] | not identified | not claimed (0.99x) |
-| all four | 1.54x [0.70, 2.02] | not identified | not claimed (0.35x) |
-| CISA, SOCIAL, VULNCHK (no SENSOR) | not identified | not identified | not identified |
+| CISA, SENSOR, VULNCHK (primary) | 2.04x [1.81, 2.32] | not identified | not identified |
+| CISA, SENSOR, strict VULNCHK | 2.12x [1.86, 2.45] | not identified | not claimed (2.64x) |
+| CISA, SENSOR, SOCIAL | 2.07x [1.75, 2.44] | not identified | not claimed (0.99x) |
+| CISA, SOCIAL, VULNCHK (no SENSOR) | 1.92x [1.64, 2.25] | 1.22x [0.67, 1.72] | not identified |
+| all four | not identified | not identified | not claimed (0.35x) |
 
-The top-stratum ~2x holds in every configuration built from evidence-citing
-lists; only adding Telegram to a four-list model moves it (1.54x, interval
-including 1). "Strict" VulnCheck keeps a CVE only if a sensor saw it or at
-least two independent sources reported it (2,912 CVEs) — the precision check,
-since 65% of VulnCheck-only CVEs rest on a single text report. **The middle
-stratum's 2.47x does not survive it** (not identified; Chao caps it at 3.21x).
+Wherever the top stratum is identified its estimate is 1.92-2.12x. "Strict"
+VulnCheck keeps a CVE only if a sensor saw it or at least two independent
+sources reported it (2,912 CVEs) -- the precision check, since VulnCheck
+supplies 398 of the 430 single-list CVEs and 38% of those 398 rest on one
+source with no sensor evidence (`vulncheck_only_not_strict`).
+
+Bootstrap intervals are seeded from each table's cell counts (2026-11-09), so
+a given stratum gets the same interval in every analysis that asks for it.
+
+**Circularity check (added 2026-11-08,** `sensitivity_lists.prelisting_strata`
+in `results/capture_recapture.json`). Strata re-formed on LEV that cannot see a
+CISA listing. Top stratum against Chao / union: frozen the day before CISA
+listing 2.16x / 3.43x (N=503); LEV at age 90 d, CVEs CISA-listed by then dropped,
+1.04x / 1.37x (N=50); at age 180 d 1.66x / 2.43x (N=172). Log-linear not
+identified in any. Against KEV alone the top stratum goes from 4.5x to 12-99x.
+Freezing at the first listing on any primary list: 6.82x vs Chao and 8.29x
+log-linear (identified; N=385, 26 listed) -- tests anticipation, not circularity.
 
 ![capture-recapture](figures/capture_recapture.png)
 
@@ -397,7 +421,7 @@ Against KEV the correction cuts calibration error 11-17x but drifts, under-
 predicting by 28-39% a year later. Much of that is KEV's narrow, lagging
 coverage — the broader target shows no drift. What remains is age: an old CVE
 reaches LEV 0.5 through many modest EPSS scores, a new one through a few high
-ones, and conditioning on age recovers about a quarter of the KEV-target drift.
+ones, and conditioning on age narrows the prospective KEV shortfall only from 34% to 28%.
 
 What a LEV score is worth, fitted on all data:
 

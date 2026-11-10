@@ -297,25 +297,25 @@ def main():
                         lev_at(m2, DN, wide).to_numpy())
 
     # ------------------------------------------------------------- figure
-    fig, axes = plt.subplots(1, 3, figsize=(15, 4.6),
-                             gridspec_kw={"width_ratios": [1, 1, 1]})
+    from matplotlib.ticker import NullFormatter
+    fig, axes = plt.subplots(1, 3, figsize=(6.5, 2.8), layout="constrained")
     grid = np.linspace(0, 1, 400)
     ax = axes[0]
-    ax.plot([0, 1], [0, 1], "--", color="gray", lw=1, label="LEV taken at face value")
+    ax.plot([0, 1], [0, 1], "--", color="gray", lw=1, label="LEV at face value")
     ax.plot(grid, predict_isotonic(iso1, grid), color="#365c8d", lw=2,
-            label="corrected to CISA KEV")
+            label="to CISA KEV")
     ax.plot(grid, predict_isotonic(iso2, grid), color="#c1440e", lw=2,
-            label="corrected to union of primary lists")
-    ax.set_xlabel("LEV score (version-normalized EPSS)")
-    ax.set_ylabel("probability to read into it")
-    ax.set_title("The correction curve (isotonic)"); ax.grid(alpha=.3)
-    ax.legend(fontsize=8)
+            label="to union of lists")
+    ax.set_xlabel("LEV (version-normalized)")
+    ax.set_ylabel("corrected probability")
+    ax.grid(alpha=.3)
+    ax.legend()
 
     # Right: does it transfer?  Both targets, every scheme; the prospective
     # bars carry their bootstrap interval.
     methods = [BASE, "isotonic", "Platt", "Platt+age"]
-    labels = ["LEV\n(version-normalized)", "isotonic", "Platt", "Platt+age"]
-    schemes = [("cv", "5-fold CV"), ("birth_split", "birth split"),
+    labels = ["LEV", "isotonic", "Platt", "Platt\n+age"]
+    schemes = [("cv", "5-fold CV"), ("birth_split", "first-score-date split"),
                ("prospective", "prospective")]
     w = 0.26
     cols = ["#9aa7b8", "#365c8d", "#c1440e"]
@@ -330,14 +330,16 @@ def main():
             ax.bar(np.arange(4) + (i - 1) * w, vals, w, color=cols[i], label=lab,
                    yerr=err, capsize=2, error_kw={"elinewidth": 1})
         ax.axhline(1, color="black", lw=1)
-        ax.set_xticks(range(4)); ax.set_xticklabels(labels, fontsize=8)
-        ax.set_yscale("log")
-        ax.set_title(f"Does it transfer? Target: {tname}")
-        ax.grid(alpha=.3, axis="y"); ax.legend(fontsize=8)
-    axes[1].set_ylabel("predicted / observed, held-out (1 = calibrated)")
+        ax.set_xticks(range(4)); ax.set_xticklabels(labels)
+        ax.set_yscale("log"); ax.yaxis.set_minor_formatter(NullFormatter())
+        ax.set_title(f"target: {tname}", fontsize=8)
+        ax.grid(alpha=.3, axis="y")
+    axes[1].set_ylabel("predicted / observed, held-out")
     axes[2].sharey(axes[1])
+    fig.legend(*axes[1].get_legend_handles_labels(), loc="outside lower right", ncol=3)
     FIGURE.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(FIGURE, dpi=150, bbox_inches="tight")
+    fig.savefig(FIGURE.with_suffix(".pdf"), bbox_inches="tight")
     print(f"\nwrote {FIGURE}")
 
     RESULTS.parent.mkdir(parents=True, exist_ok=True)

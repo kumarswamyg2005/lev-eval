@@ -24,8 +24,8 @@ per-report provenance (the research brief's L2'):
   5. its date is the earliest surviving report
 
 First run (2026-09-28): 5,371 records -> 4,815 CVEs.  For 78% of CISA-listed
-CVEs the earliest surviving report predates CISA's listing (median 28 days
-earlier), so the remaining evidence is not an echo of CISA.
+CVEs the earliest surviving report predates CISA's listing (median lead 28 days
+over all of them), so the remaining evidence is not an echo of CISA.
 
 The raw download stays in cache/ (gitignored): VulnCheck's terms do not say
 whether it may be redistributed.
@@ -106,9 +106,9 @@ def load():
         dates = [r.get("date_added") for r in reports if r.get("date_added")]
         first = min(dates) if dates else rec.get("date_added")
         # STRICT: sensor-observed, or reported by at least two independent
-        # hosts.  65% of VulnCheck-only CVEs rest on one text report (checked
-        # 2026-09-28), so this is the precision check on VulnCheck's weakest
-        # entries.
+        # hosts.  38% of the capture-recapture population's VulnCheck-only CVEs
+        # fail it (capture_recapture.json: vulncheck_only_not_strict), so this
+        # is the precision check on VulnCheck's weakest entries.
         hosts = {urlparse(r.get("url", "")).netloc.lower() for r in reports}
         sensor = canary or any(k in h for h in hosts for k in SENSOR_HOSTS)
         strict = sensor or len(hosts) >= 2

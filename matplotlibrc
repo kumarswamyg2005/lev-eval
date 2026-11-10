@@ -1,0 +1,13 @@
+# Picked up by matplotlib when scripts run from the repo root (as `make` does).
+# Figures are drawn at their printed size, so 8 pt here is 8 pt in the paper
+# (body text is 11 pt, captions 10 pt).
+font.size: 8
+axes.labelsize: 8
+axes.titlesize: 8
+xtick.labelsize: 7
+ytick.labelsize: 7
+legend.fontsize: 7
+# Embed TrueType (Type 42), not Type 3, fonts in PDF figures: submission
+# systems and printers can reject Type 3.
+pdf.fonttype: 42
+ps.fonttype: 42

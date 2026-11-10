@@ -19,21 +19,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from data import download_epss
 from models import lev as levmod
 
-# CSWP 41 Table 5.  The "all" row is computed over every CVE with EPSS data
-# and no version restriction, so it deliberately mixes EPSS v1/v2/v3 -- which
-# makes it the row most exposed to the version-mixing effect measured in
-# analysis/version_normalize.py.
+# CSWP 41 Table 5 ("Proportion of expected exploited on 2025-01-16"): average
+# LEV, and NIST_N the number of CVEs, published since each date.  The "all"
+# row is every CVE with EPSS data (273,979), back to 1980.
 NIST = {"2023-03-07": 0.015, "2022-02-04": 0.047, "2021-04-14": 0.087,
         "all": 0.146}
+NIST_N = {"2023-03-07": 66125, "2022-02-04": 94440, "2021-04-14": 112754,
+          "all": 273979}
 
 TOLERANCE = 0.30  # flag anything off by more than 30% relative
 
-# CSWP 41 is dated May 2025 and its Table 5 was computed against EPSS data
-# ending around this date.  Our snapshots run to today, and LEV grows
-# monotonically with the length of the window, so comparing at today's date
-# would overstate every row.  ASSUMPTION: dn = 2025-03-01 approximates the
-# paper's analysis date; the exact one is not stated in the paper.
-PAPER_DN = pd.Timestamp("2025-03-01")
+# The date CSWP 41 gives for Table 5 (Sec. 7.2 and the table caption).  Until
+# 2026-11-11 this was 2025-03-01, on the mistaken reading that the white
+# paper does not state it.
+PAPER_DN = pd.Timestamp("2025-01-16")
 
 ROOT = Path(__file__).resolve().parent.parent
 GRID_JSON = ROOT / "results" / "validate_dn_grid.json"
@@ -81,24 +80,44 @@ def table(wide, first_idx, dn):
     live = first_date <= dn                # not yet published as of dn
 
     rows = []
-    for since, expected in NIST.items():
-        # "all" drops the publication cut-off AND keeps the pre-archive corpus
-        # (CVEs already present in the first snapshot), since the row is not
-        # about publication date at all.  The backfill correction still
-        # applies: it is data hygiene (EPSS retroactively scoring old CVEs),
-        # not an EPSS-version restriction, so applying it to three rows and not
-        # the fourth would make them incomparable.  Without it the row reads
-        # 0.2550 (+75%); with it, 0.1299 (-11%).
-        m = (not_backfill & live if since == "all"
-             else born & live & (first_date >= pd.Timestamp(since)))
+    # "all" is every CVE EPSS had scored by dn, as in CSWP 41 (its N matches
+    # ours to 0.5%).  That row is NOT reproduced (about +78%).  The backfill
+    # filter brings the average close (-7%) but on fewer than half the CVEs,
+    # so "all, not backfilled" is shown for the record, not as a match.
+    masks = {**{s: born & live & (first_date >= pd.Timestamp(s))
+                for s in NIST if s != "all"},
+             "all": live, "all, not backfilled": not_backfill & live}
+    for since, m in masks.items():
+        key = "all" if since.startswith("all") else since
+        expected = NIST[key]
         got, got2 = scores[m].mean(), scores2[m].mean()
         rel = (got - expected) / expected
         rows.append({"since": since, "n_cves": int(m.sum()),
+                     "nist_n": NIST_N[key],
                      "nist_table5": expected, "ours_lev": round(got, 4),
                      "ours_lev2": round(got2, 4),
                      "rel_err": f"{rel:+.0%}",
                      "ok": "PASS" if abs(rel) <= TOLERANCE else "FLAG"})
     return pd.DataFrame(rows)
+
+
+def all_row_variants(wide, first_idx, dn):
+    """Why the "all" row misses: it is the pre-2021 CVEs, and assuming the
+    white paper's run lacked EPSS v1 (or v1 and v2) scores does not fix it."""
+    dates = wide.columns
+    live = (dates.to_numpy()[first_idx.to_numpy()] <= np.datetime64(dn))
+    old = live & (wide.index.astype(str).str.slice(4, 8).astype(int) <= 2020)
+    out = {"n_all": int(live.sum()), "n_id_year_le_2020": int(old.sum())}
+    for name, cut in (("all_scores", None), ("no_scores_before_v2", "2022-02-04"),
+                      ("no_scores_before_v3", "2023-03-07")):
+        w = wide
+        if cut:
+            w = wide.copy()
+            w.loc[:, dates < pd.Timestamp(cut)] = 0.0
+        s = levmod.lev(w, first_idx, dn=dn).to_numpy()
+        out[name] = {"mean_all": float(s[live].mean()),
+                     "mean_id_year_le_2020": float(s[old].mean())}
+    return out
 
 
 def dn_grid(wide, first_idx, dns=DN_GRID):
@@ -141,8 +160,10 @@ def main():
         t = table(wide, first_idx, dn)
         print(f"\n=== NIST CSWP 41 Table 5 vs ours (dn = {dn.date()}) ===")
         print(t.to_string(index=False))
-        if dn == dns[0]:   # only the paper-era date is the actual check
-            ok = (t["ok"] == "PASS").all()
+        if dn == dns[0]:   # only the white paper's date is the actual check,
+            # and only the three publication-date rows are expected to match
+            ok = (t.loc[~t["since"].str.startswith("all"), "ok"] == "PASS").all()
+            table5 = t.to_dict("records")
 
     if not args.dn:
         g = dn_grid(wide, first_idx)
@@ -166,7 +187,9 @@ def main():
         GRID_JSON.parent.mkdir(parents=True, exist_ok=True)
         GRID_JSON.write_text(json.dumps(
             {"rows": g.to_dict("records"), "summary": summ.to_dict("records"),
-             "tolerance": TOLERANCE, "headline_dn": str(PAPER_DN.date())},
+             "tolerance": TOLERANCE, "headline_dn": str(PAPER_DN.date()),
+             "table5": table5,
+             "all_row_variants": all_row_variants(wide, first_idx, PAPER_DN)},
             indent=1, default=lambda o: o.item() if hasattr(o, "item") else str(o)))
         print(f"  wrote {GRID_JSON}")
 

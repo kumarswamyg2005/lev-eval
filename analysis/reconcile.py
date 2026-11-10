@@ -21,7 +21,7 @@ from analysis import calibration, validate
 
 pd.set_option("display.width", 200)
 
-TASK4_DN = validate.PAPER_DN                 # 2025-03-01
+TASK4_DN = validate.PAPER_DN                 # 2025-01-16
 EPSS_V3 = calibration.EPSS_V3                # 2023-03-07
 CENSOR = calibration.CENSOR_DAYS             # 183
 
@@ -32,7 +32,7 @@ TASK4_PREDICATES = [
     "first_epss_date.year - cve_id_year <= 1        (EPSS coverage backfills)",
     "first_epss_date >= 2023-03-07                  (Table 5 'published since')",
     "first_epss_date <= dn                          (not yet published at dn)",
-    "dn = 2025-03-01                                (paper-era analysis date)",
+    "dn = 2025-01-16                                (paper-era analysis date)",
 ]
 TASK5_PREDICATES = [
     "first_epss_date >= 2023-03-07                  (EPSS v3 era)",
@@ -107,17 +107,17 @@ def main():
     print("\ncomputing LEV for both populations...")
     t4 = levmod.lev(wide[t4_mask], first_idx[t4_mask], dn=TASK4_DN)
     t5 = levmod.lev(wide[t5_mask], first_idx[t5_mask], dn=latest)
-    summary = pd.DataFrame([describe("Task 4 (dn=2025-03-01)", t4),
+    summary = pd.DataFrame([describe("Task 4 (dn=2025-01-16)", t4),
                             describe("Task 5 (dn=2026-08-01)", t5)])
     print("\n" + summary.to_string(index=False))
 
     # ------------------------------------------------------------- the bridge
     # Walk one change at a time. LEV is a product over 30-day windows from a
     # CVE's first EPSS date to dn, so it grows monotonically with dn -- moving
-    # the analysis date 17 months later is not a neutral bookkeeping change.
+    # the analysis date 18 months later is not a neutral bookkeeping change.
     print("\n--- bridging the gap, one filter change at a time ---")
     bridge_defs = [
-        ("A. Task 4 config: dn=2025-03-01, no age filter", t4_mask, TASK4_DN),
+        ("A. Task 4 config: dn=2025-01-16, no age filter", t4_mask, TASK4_DN),
         ("B. A but dn=2026-08-01 (latest snapshot)",
          (first_date > dates[0]) & not_backfill & (first_date >= EPSS_V3)
          & (first_date <= latest), latest),
@@ -151,7 +151,7 @@ def main():
     print(f"  in Task 4 only: {only4:,}   in Task 5 only: {only5:,}   in both: {both:,}")
     shared = wide.index[t4_mask & t5_mask]
     print(f"  mean LEV on the {len(shared):,} SHARED CVEs: "
-          f"{float(t4[shared].mean()):.5f} at dn=2025-03-01 vs "
+          f"{float(t4[shared].mean()):.5f} at dn=2025-01-16 vs "
           f"{float(t5[shared].mean()):.5f} at dn=2026-08-01 "
           f"({float(t5[shared].mean() / t4[shared].mean()):.2f}x)")
 
@@ -186,11 +186,11 @@ def main():
 The populations are not the same analysis. The gap is {total:.1f}x and decomposes
 cleanly into two known, intended differences:
 
-  {bridge['x_prev'].iloc[1]:>5s}  moving dn from 2025-03-01 to 2026-08-01
+  {bridge['x_prev'].iloc[1]:>5s}  moving dn from 2025-01-16 to 2026-08-01
   {bridge['x_prev'].iloc[2]:>5s}  the 6-month right-censoring filter
 
 LEV(v, d0, dn) is a product over 30-day windows from d0 to dn, so it is
-monotonically increasing in dn by construction. Adding 17 months of windows to
+monotonically increasing in dn by construction. Adding 18 months of windows to
 every CVE cannot leave the mean unchanged. On the {len(shared):,} CVEs present in BOTH
 populations the mean rises {float(t5[shared].mean() / t4[shared].mean()):.2f}x from the dn shift alone, with the
 population held fixed -- so this is the dn, not the filters.
@@ -201,12 +201,12 @@ date field, and the two sets overlap on {both:,} CVEs rather than being disjoint
 
 CORRECT POPULATION FOR CALIBRATION: Task 5's (dn = latest snapshot).
 KEV membership is observed through the present, so LEV must be computed to the
-same date. Using dn=2025-03-01 while checking KEV through 2026-08 would score
-predictions against 17 months of outcomes the prediction could not see.
-dn=2025-03-01 is correct only for reproducing the paper's Table 5, whose value
+same date. Using dn=2025-01-16 while checking KEV through 2026-08 would score
+predictions against 18 months of outcomes the prediction could not see.
+dn=2025-01-16 is correct only for reproducing the paper's Table 5, whose value
 depends on NIST's own analysis date.
 
-Neither number is wrong. mean LEV 0.016 answers "what did LEV say in March
+Neither number is wrong. mean LEV 0.016 answers "what did LEV say in January
 2025"; 0.081 answers "what does LEV say today about CVEs old enough to judge".
 Calibration needs the second.""")
     return 0

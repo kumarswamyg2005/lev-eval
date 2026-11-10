@@ -252,15 +252,13 @@ def plot(table, brier, ece, n, path=FIGURE):
     from matplotlib.ticker import FuncFormatter, NullFormatter
     ok = table["n"] > 0
     fig, (ax, axh) = plt.subplots(
-        2, 1, figsize=(5.5, 6), sharex=True,
+        2, 1, figsize=(4.0, 4.2), sharex=True,
         gridspec_kw={"height_ratios": [3, 1], "hspace": 0.08})
 
     lim = (1e-4, 1.0)
     ax.plot(lim, lim, "--", color="gray", lw=1, label="perfect calibration")
     for f in (10, 100):
-        ax.plot(lim, np.array(lim) / f, ":", color="gray", lw=.8)
-        ax.annotate(f"{f}x over", (0.6, 0.6 / f), fontsize=7, color="gray",
-                    ha="right", va="bottom")
+        ax.plot(lim, np.array(lim) / f, ":", color="gray", lw=.8)   # 10x, 100x: named in the caption
     t = table[ok]
     lo = np.maximum(t["obs_lo"], lim[0])     # Wilson lower bound can be 0
     ax.errorbar(t["predicted"], t["observed"],

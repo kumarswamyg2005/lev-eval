@@ -186,6 +186,11 @@ def main():
     print(f"  net change quartiles                     : "
           f"x{np.exp(np.quantile(eff, .25)):.2f} .. x{np.exp(np.quantile(eff, .75)):.2f}")
     print(f"  share of KEV CVEs whose EPSS rose more than controls: {(eff > 0).mean():.0%}")
+    jump = {"n_pairs": len(pairs), "raw_median_ratio": float(np.exp(np.median(raw))),
+            "net_median_ratio": float(np.exp(np.median(eff))),
+            "net_q25_ratio": float(np.exp(np.quantile(eff, .25))),
+            "net_q75_ratio": float(np.exp(np.quantile(eff, .75))),
+            "share_rose_more_than_controls": float((eff > 0).mean())}
 
     # --------------------------------------------------- 2. pre-listing LEV
     print(f"\n{'=' * 84}\n2. PRE-LISTING LEV -- scores the listing could not have touched\n{'=' * 84}")
@@ -289,6 +294,7 @@ def main():
               f"later listed {r['later_listed']:>3}  precision {r['precision']:.3f} vs base "
               f"{r['base_rate']:.4f}  lift {r['lift']:.0f}x  recall {r['recall']:.0%}")
     out["fixed_age_leading_indicator"] = fa
+    out["jump_at_listing"] = jump
 
     RESULTS.parent.mkdir(parents=True, exist_ok=True)
     RESULTS.write_text(json.dumps(out, indent=1, default=lambda o: o.item()

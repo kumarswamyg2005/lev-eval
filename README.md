@@ -4,7 +4,9 @@ Empirical evaluation of NIST's Likely Exploited Vulnerabilities metric (LEV,
 CSWP 41, Mell & Spring, May 2025): are LEV probabilities calibrated against
 observed exploitation, and how much of the apparent error belongs to the
 exploitation catalogue (CISA KEV) rather than to LEV? The paper is
-[paper/draft.md](paper/draft.md).
+[paper/main.tex](paper/main.tex) (LaTeX; `bash paper/build-tex.sh`
+builds `main.pdf`, the anonymous WEIS submission `weis.pdf` and the ACM-format `acm.pdf`).
+`paper/draft.md` is the earlier Markdown draft, superseded on 2026-11-08.
 
 - [docs/RESULTS.md](docs/RESULTS.md): per-task results and narrative (pre-review numbers)
 - [docs/THREATS.md](docs/THREATS.md): the numbered threats to validity
@@ -100,7 +102,7 @@ the same commit.
     models/lev.py LEV and LEV2 (CSWP 41 Eq. 3 and 5), with self-test
     figures/      generated figures
     results/      generated JSON results (authoritative numbers)
-    paper/        draft.md, references.md, build script
+    paper/        main.tex + body.tex + appendix.tex + refs.bib, references.md, build scripts
     docs/         RESULTS.md, THREATS.md; docs/archive/ holds superseded reports
     cache/        downloads and intermediates (gitignored)
     DATASETS.md   Phase 2 data-sourcing notes (2026-09-06)

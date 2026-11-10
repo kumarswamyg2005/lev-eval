@@ -1,0 +1,143 @@
+\section{A learned aggregation of EPSS history}\label{app:learned}
+
+\paragraph{Question.} LEV combines a CVE's EPSS history with one fixed rule.
+Would a model that sees the same history, and nothing else, combine it better?
+We restrict the inputs to EPSS history so that the comparison tests LEV's rule
+rather than the value of additional data.
+
+\paragraph{Design.} There are seven features, all computed from
+version-normalized EPSS scores dated on or before the analysis date: LEV, log
+CVE age, and the current, peak, mean, first and three-month-trend EPSS. There
+are two learners: an L2-regularized logistic regression, with probability
+features on the logit scale, and gradient-boosted trees, constrained to be
+monotone in LEV and heavily regularized. The choice between them is fixed by a
+rule that sees only training data: fit on the older two-thirds of the training
+cohort, validate on the newer third, and keep the model with the higher average
+precision (AP). We wrote this rule after a first, unreported run, and report
+both models throughout. The baselines are LEV, current EPSS, peak EPSS, and the
+isotonic and age-aware Platt maps of Section~\ref{sec:m-correct}. In Experiment~1, every
+model, these maps included, is fitted on the same training set, the 10,296 CVEs
+(10,255 once KEV-listed CVEs are removed) whose
+first monthly EPSS snapshot is dated between 24 October 2024 and
+30 January 2025; for the KEV target this
+differs from Table~\ref{tab:prosp}, whose maps are fitted on the calibration
+cohort, so their ratios differ too.
+
+\emph{Experiment 1} repeats the prospective test of
+Section~\ref{sec:m-correct} with three targets: the union of the primary lists;
+CISA KEV; and the union with every KEV-listed CVE removed from both training
+and test sets, which cuts the path by which a listing raises later scores. For
+the logistic model, the bootstrap resamples training \emph{and} test CVEs and
+refits, so its intervals include training variance.
+
+\emph{Experiment 2} is a forward test. At an origin $t$ we take every CVE that
+is at least 30 days old and on no list, compute its features at $t$, and label
+it positive if it is first listed within the next 182 days. No feature reads
+a snapshot dated after $t$. Training uses the
+origin one horizon earlier. There are three test origins (2 August 2025,
+31 October 2025 and 30 January 2026), and a second target that uses only CISA
+and SENSOR dates, because VulnCheck's dates come from a later snapshot.
+
+\begin{table}[t]
+\centering\small
+\caption{Experiment 1: average precision (and ratio of predicted to observed).
+Fitted at 2025-08-01 and scored at 2026-08-01 on 44,316 unseen CVEs (44,124
+once KEV-listed CVEs are removed), with 597, 192 and 405 test positives (111,
+41 and 70 in training).}\label{tab:a1}
+\begin{tabular}{@{}llll@{}}
+\toprule
+method & union & KEV & union without KEV \\
+\midrule
+LEV & 0.399 (2.03\x) & 0.324 (6.30\x) & 0.228 (2.66\x) \\
+current EPSS & 0.404 (0.65\x) & 0.457 (2.02\x) & 0.221 (0.72\x) \\
+peak EPSS & 0.424 (0.97\x) & 0.459 (3.03\x) & 0.237 (1.17\x) \\
+isotonic & 0.337 (1.00\x) & 0.239 (1.29\x) & 0.203 (0.94\x) \\
+Platt with age & 0.366 (0.88\x) & 0.329 (0.61\x) & 0.180 (1.20\x) \\
+logistic & 0.398 (0.99\x) & 0.196 (1.52\x) & 0.190 (0.74\x) \\
+boosted trees & 0.309 (1.05\x) & 0.127 (2.47\x) & 0.089 (0.45\x) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[tb]
+\centering
+\fig{learned_lev.pdf}
+\caption{Left: Experiment 1 average precision by target; the learned models
+never beat LEV or current EPSS. Right: Experiment 2 average precision by
+forecast origin.}\label{fig:learned}
+\end{figure}
+
+\paragraph{No learned aggregation ranks better.} On every target, the logistic
+model's AP is within noise of LEV's (Table~\ref{tab:a1}). The 95\% interval of
+the difference is $-0.134$ to $+0.035$ on the union, $-0.137$ to $+0.021$ on
+the union without KEV, and $-0.229$ to $+0.001$ on CISA KEV, where the logistic
+model is also significantly below current EPSS ($-0.354$ to $-0.124$). The
+boosted model is significantly worse than LEV on all three targets. Across
+both experiments, the selection rule picked the logistic model in eight of nine
+splits. Peak EPSS alone is as good as anything.
+
+\paragraph{An apparent gain was an artifact.} A first version of this
+experiment used EPSS scores that were not version-normalized and kept KEV-listed
+CVEs in the target. There, the logistic model's AP exceeded LEV's (0.435
+against 0.397), although the interval of the difference, once training
+variance is included, spans zero ($-0.065$ to $+0.051$). The gap disappears
+when either condition is removed. With version-normalized inputs, AP is 0.398
+against 0.399. With KEV members dropped, it is 0.204 against 0.224 for LEV and
+0.221 for current EPSS. A model trained on lists that feed EPSS learns the
+feedback. The \texttt{E1\_raw\_epss} entry of \texttt{results/learned\_lev.json}
+holds this check.
+
+\begin{table}[t]
+\centering\small
+\caption{Experiment 2, union target: AP for first listing within the next 182
+days, among unlisted CVEs at least 30 days old.}\label{tab:a2}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+test origin & positives / $N$ & base rate & LEV & current EPSS & logistic & boosted trees \\
+\midrule
+2025-08-02 & 71 / 32,223 & 0.22\% & 0.035 & 0.042 & 0.019 & 0.007 \\
+2025-10-31 & 105 / 43,059 & 0.24\% & 0.028 & 0.027 & 0.038 & 0.025 \\
+2026-01-30 & 97 / 49,678 & 0.20\% & 0.020 & 0.025 & 0.022 & 0.010 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Nothing anticipates the lists.} Across the three forward origins
+(Table~\ref{tab:a2}), no method's AP is significantly above that of current
+EPSS. The boosted model is significantly below it at two origins and the
+logistic model at one. Current EPSS is never significantly worse than LEV, and
+is slightly better at two of the three origins when only CISA and SENSOR dates
+are used. In each window, 59--75\% of the listings concern CVEs that were
+less than 30 days old, or not yet scored, when the window opened, so no
+history-based method can see them in advance.
+
+\paragraph{Threats.} The training sets are small (20 to 111 positives),
+Experiment 1 has a single split, and many intervals are reported without
+correction for multiplicity, so these results are exploratory. SENSOR is an
+EPSS label source, so some circularity remains even without KEV.
+
+\section{Further robustness}\label{app:robust}
+
+Each check below is regenerated by \texttt{make reproduce}, and its full
+output is written to the file named.
+\begin{itemize}
+\item Reproduction error against analysis date (Section~\ref{sec:res-repro}):
+\texttt{results/validate\_dn\_grid.json}.
+\item Calibration by age and by maturity rule (Table~\ref{tab:age}):
+\texttt{results/calibration.json}.
+\item Growth families, HAC and block-bootstrap comparisons, and EPSS for
+never-listed CVEs (Section~\ref{sec:res-growth}): \texttt{results/dn\_sweep.json}
+and Figure~\ref{fig:sweepapp}.
+\item The version artifact under percentile, step-only and cohort-fit maps,
+and the one-day steps at v4 and v5 (Section~\ref{sec:res-version}):
+\texttt{results/version\_normalize.json}.
+\item The matched-control early-signal analysis (Section~\ref{sec:res-leak}):
+\texttt{results/leakage.json}.
+\end{itemize}
+
+\begin{figure}[tb]
+\centering
+\fig{dn_sweep_appendix.pdf}
+\caption{Analysis-date sweep: additional panels, and mean EPSS for CVEs that
+no list records.}\label{fig:sweepapp}
+\end{figure}

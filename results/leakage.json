@@ -117,5 +117,13 @@
    "lift": 12.8481463878327,
    "recall": 0.15625
   }
- ]
+ ],
+ "jump_at_listing": {
+  "n_pairs": 1168,
+  "raw_median_ratio": 1.0,
+  "net_median_ratio": 1.0,
+  "net_q25_ratio": 1.0,
+  "net_q75_ratio": 2.845144271850586,
+  "share_rose_more_than_controls": 0.4477739726027397
+ }
 }

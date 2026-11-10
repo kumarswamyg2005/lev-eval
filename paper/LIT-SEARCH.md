@@ -43,3 +43,37 @@ submission and add anything new here.
 Both claims stand as of 2026-10-28. The search is structured, not a formal
 systematic review; peer-reviewed work not on arXiv may be missed (threats,
 Section 7).
+
+## Re-run 2026-11-08 (while writing main.tex)
+
+- arXiv API, same queries, papers since 2026-10-20: no new hits.
+- OpenAlex search "likely exploited vulnerabilities", newest first: one new
+  relevant paper, Lu & Stiawan, *Queue Shock at Model Upgrades* (Cybersecurity
+  Advances 3(1), 30 Oct 2026) [53]. It audits EPSS rank stability across the
+  v2-v5 releases for queue workload and cites CSWP 41, but does not evaluate
+  LEV or catalogue coverage. Cited as concurrent work in Related work; claim
+  (a) and (b) still stand.
+- arXiv 2609.37217 (scoring-system divergence on an OT grid model): not
+  relevant, not cited.
+- [21] and [26] are now published in IEEE Access; entries updated.
+- NIST CSRC page for CSWP 41: still the 19 May 2025 final, no revision.
+
+## Re-run 2026-11-11 (pre-submission review)
+
+- arXiv API, the first five queries above plus `all:"multiple systems
+  estimation" AND cat:cs.CR` and `all:KEV AND all:incomplete*`, papers since
+  2026-10-15: no new hits (newest EPSS/KEV paper is still CAPE, 9 October).
+- OpenAlex (`search=`, published since 2026-10-20) for "likely exploited
+  vulnerabilities", "known exploited vulnerabilities", EPSS calibration and
+  capture-recapture with exploited vulnerabilities: only Lu & Stiawan [38]
+  (already cited) is relevant. Zenodo holds data and code for a paper titled
+  "Patch Now or Wait? The Value of Waiting for Exploit Forecasts in
+  Vulnerability Management" (October 2026); the paper itself was not found.
+  It is about patch timing with EPSS, not LEV or catalogue coverage. Watch for
+  it: it is the kind of paper WEIS attracts.
+- Web search for LEV evaluations: none published. The first hit for an
+  "empirical evaluation of LEV" is this project's own public GitHub repository.
+- Claims (a) and (b) still stand.
+- Source check against CSWP 41 itself (not done before): the white paper
+  DOES state Table 5's date (2025-01-16) and each row's CVE count. The paper
+  and `validate.py` now use that date; see Section 5.1.

@@ -11,3 +11,12 @@ paper/draft-anon.pdf
 # private working material, kept out of the public repository
 talk/
 PROJECT-REVIEW.md
+# LaTeX build products (paper/build-tex.sh); acm.pdf is only a page-count check
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.log
+paper/*.out
+paper/weis.pdf
+paper/acm.pdf
+paper/SUBMISSION.md

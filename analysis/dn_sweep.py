@@ -414,10 +414,21 @@ def never_listed(wide, mask, dns, kev_dates):
 def regime_change(series, lo, hi):
     """Start, end and OLS slope/month of a series restricted to [lo, hi]."""
     s = series[(series.index >= lo) & (series.index <= hi)]
-    sl = stats.linregress(np.arange(len(s)), s.to_numpy())
+    t, y = np.arange(len(s), dtype=float), s.to_numpy(dtype=float)
+    sl = stats.linregress(t, y)
+    # Monthly means are autocorrelated, so also give a Newey-West (3-lag) p.
+    X = np.column_stack([np.ones_like(t), t])
+    e = y - X @ np.array([sl.intercept, sl.slope])
+    XtXi, Xe = np.linalg.inv(X.T @ X), X * e[:, None]
+    S = Xe.T @ Xe
+    for l in range(1, 4):
+        G = Xe[l:].T @ Xe[:-l]
+        S += (1 - l / 4) * (G + G.T)
+    z = sl.slope / float(np.sqrt((XtXi @ S @ XtXi)[1, 1]))
     return {"from": str(s.index[0].date()), "to": str(s.index[-1].date()),
             "start": float(s.iloc[0]), "end": float(s.iloc[-1]),
-            "slope_per_month": float(sl.slope), "slope_p": float(sl.pvalue)}
+            "slope_per_month": float(sl.slope), "slope_p": float(sl.pvalue),
+            "slope_p_hac3": float(2 * stats.norm.sf(abs(z)))}
 
 
 V4_REGIME = (pd.Timestamp("2025-04-01"), pd.Timestamp("2026-06-01"))
@@ -435,7 +446,7 @@ def _releases(ax, label=False):
 def plot(results, path=FIGURE):
     """Main figure: one panel, mean LEV for the two fixed cohorts."""
     import matplotlib.dates as mdates
-    fig, ax = plt.subplots(figsize=(6.5, 3.6))
+    fig, ax = plt.subplots(figsize=(6.0, 3.0))
     for (name, df), c in zip(results.items(), ["#c1440e", "#365c8d"]):
         ax.plot(df["dn"], df["mean_lev"], "-o", ms=3, color=c,
                 label=name.replace("first EPSS", "first scored"))
@@ -457,7 +468,7 @@ def plot_appendix(results, nl, path=FIG_APPX):
     """Appendix: threshold shares, KEV rate, LEV/KEV ratio, never-listed EPSS."""
     import matplotlib.dates as mdates
     from matplotlib.ticker import FuncFormatter, LogLocator, NullFormatter
-    fig, axes = plt.subplots(4, 1, figsize=(6.5, 10), sharex=True)
+    fig, axes = plt.subplots(4, 1, figsize=(6.4, 5.6), sharex=True, layout="constrained")
     colors = ["#c1440e", "#365c8d"]
     for (name, df), c in zip(results.items(), colors):
         short = name.split(" (")[0] + " cohort"
@@ -486,9 +497,12 @@ def plot_appendix(results, nl, path=FIG_APPX):
     axes[3].set_ylabel("cohort mean EPSS")
     axes[3].set_xlabel("analysis date")
     for i, ax in enumerate(axes):
+        if i == 0:                           # headroom for the release labels
+            lo_, hi_ = ax.get_ylim()
+            ax.set_ylim(lo_, hi_ + 0.25 * (hi_ - lo_))
         _releases(ax, label=(i == 0))
         ax.grid(alpha=.3)
-        ax.legend(fontsize=7)
+        ax.legend(loc="center left", bbox_to_anchor=(1.01, 0.5))   # outside: never covers data
     axes[-1].xaxis.set_major_locator(mdates.MonthLocator(bymonth=(1, 7)))
     axes[-1].xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
     fig.savefig(path, dpi=150, bbox_inches="tight")

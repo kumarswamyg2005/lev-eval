@@ -1,0 +1,63 @@
+% Submission version: 11pt, single column, 1in margins (WEIS sets no format).
+% Build:  bash paper/build-tex.sh   (main.pdf, weis.pdf, acm.pdf)
+\documentclass[11pt,letterpaper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{times}       % Times text, Computer Modern math (basic TeX install lacks newtx TS1 and rsfs metrics)
+\usepackage[varqu]{zi4}  % monospace
+\usepackage{microtype}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage{tabularx}
+\graphicspath{{../figures/}}
+
+% \def\ANON{} before \input{main} gives the anonymized WEIS submission (weis.tex).
+\newif\ifanon
+\ifdefined\ANON\anontrue\fi
+
+\newcommand{\finding}[1]{\par\smallskip\noindent\fbox{\parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{\small\textbf{Finding.} #1}}\par\smallskip}
+\newcommand{\x}{$\times$}
+% Figures are drawn at print size (analysis/*.py + matplotlibrc), so include
+% them unscaled; shrink only if wider than the text block (e.g. ACM format).
+\newsavebox{\figbox}
+\newcommand{\fig}[1]{\sbox{\figbox}{\includegraphics{#1}}%
+  \ifdim\wd\figbox>\linewidth\resizebox{\linewidth}{!}{\usebox{\figbox}}\else\usebox{\figbox}\fi}
+
+\title{What KEV Misses, and What It Does to LEV:\\An Empirical Evaluation of NIST's\\Likely Exploited Vulnerabilities Metric}
+\ifanon
+  \author{Anonymous submission}
+\else
+  \author{\begin{tabular}{ccc}
+    Gurram Naga Kumaraswamy$^{*}$ & Kakarla Saikrishna$^{*}$ & Bulla Rajesh\\
+    \small\texttt{nagakumaraswamy.g23@iiits.in} & \small\texttt{saikrishna.k@iiits.in} &
+    \small\texttt{rajesh.bulla@iiits.in}
+  \end{tabular}\\[4pt]
+  \small Indian Institute of Information Technology Sri City, India\\[2pt]
+  \small $^{*}$Equal contribution (joint first authors).}
+\fi
+\ifanon\date{}\else\date{Draft, 11 November 2026}\fi
+
+\begin{document}
+\maketitle
+\begin{abstract}
+\input{abstract}
+\end{abstract}
+
+\input{body}
+
+\appendix
+\input{appendix}
+\clearpage  % flush appendix figures so nothing floats past the references
+
+% References last, after the appendices (WEIS sets no order; this keeps the
+% reference list at the very end of the PDF).
+\bibliographystyle{unsrtnat}
+\bibliography{refs}
+\end{document}

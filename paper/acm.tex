@@ -1,0 +1,37 @@
+% Same body in the ACM acmsmall journal format (DTRAP), to measure page count.
+\documentclass[acmsmall]{acmart}
+\acmJournal{DTRAP}
+\setcopyright{none}
+\usepackage{tabularx}
+\graphicspath{{../figures/}}
+\newif\ifanon
+\newcommand{\finding}[1]{\par\smallskip\noindent\fbox{\parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{\small\textbf{Finding.} #1}}\par\smallskip}
+\newcommand{\x}{$\times$}
+% Figures are drawn at print size (analysis/*.py + matplotlibrc), so include
+% them unscaled; shrink only if wider than the text block (e.g. ACM format).
+\newsavebox{\figbox}
+\newcommand{\fig}[1]{\sbox{\figbox}{\includegraphics{#1}}%
+  \ifdim\wd\figbox>\linewidth\resizebox{\linewidth}{!}{\usebox{\figbox}}\else\usebox{\figbox}\fi}
+\title{What KEV Misses, and What It Does to LEV: An Empirical Evaluation of NIST's Likely Exploited Vulnerabilities Metric}
+\author{Gurram Naga Kumaraswamy}
+\authornote{Both authors contributed equally to this research.}
+\email{nagakumaraswamy.g23@iiits.in}
+\affiliation{\institution{Indian Institute of Information Technology Sri City}\city{Sri City}\state{Andhra Pradesh}\country{India}}
+\author{Kakarla Saikrishna}
+\authornotemark[1]
+\email{saikrishna.k@iiits.in}
+\affiliation{\institution{Indian Institute of Information Technology Sri City}\city{Sri City}\state{Andhra Pradesh}\country{India}}
+\author{Bulla Rajesh}
+\email{rajesh.bulla@iiits.in}
+\affiliation{\institution{Indian Institute of Information Technology Sri City}\city{Sri City}\state{Andhra Pradesh}\country{India}}
+\begin{document}
+\begin{abstract}
+\input{abstract}
+\end{abstract}
+\maketitle
+\input{body}
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+\appendix
+\input{appendix}
+\end{document}

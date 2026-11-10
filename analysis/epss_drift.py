@@ -249,7 +249,7 @@ def main():
                 v = got[1].reindex(idx).fillna(wide.loc[idx, prev])
                 daily[name][ts] = float(v.mean())
     import matplotlib.dates as mdates
-    fig = plt.figure(figsize=(7, 5.6))
+    fig = plt.figure(figsize=(6.5, 4.0))
     gs = fig.add_gridspec(2, 2, height_ratios=[1.6, 1], hspace=0.45, wspace=0.3)
     ax = fig.add_subplot(gs[0, :])
     zooms = [fig.add_subplot(gs[1, i]) for i in range(len(brackets[:2]))]
@@ -274,10 +274,13 @@ def main():
     edges = [pd.Timestamp(dns[0]) - pd.Timedelta(days=15)] + switches + \
             [pd.Timestamp(dns[-1]) + pd.Timedelta(days=15)]
     versions = ["v2023.03.01"] + [b[4][0] for b in brackets]
-    for x0, v in zip(edges[:-1], versions):
-        ax.annotate(VERSION_NAMES.get(v, v), (x0, 1),
-                    xycoords=("data", "axes fraction"), xytext=(3, -4),
-                    textcoords="offset points", ha="left", va="top",
+    lo_, hi_ = ax.get_ylim()
+    ax.set_ylim(lo_, hi_ + 0.12 * (hi_ - lo_))      # headroom for the version labels
+    for k, (x0, v) in enumerate(zip(edges[:-1], versions)):
+        last = k == len(versions) - 1                # last regime is short: label it from the right
+        ax.annotate(VERSION_NAMES.get(v, v), (edges[-1] if last else x0, 1),
+                    xycoords=("data", "axes fraction"), xytext=(-3 if last else 3, -3),
+                    textcoords="offset points", ha="right" if last else "left", va="top",
                     fontsize=8, color="gray")
     ax.set_xlim(edges[0], edges[-1])
     ax.set_xlabel("analysis date (monthly snapshots)")
@@ -285,10 +288,10 @@ def main():
     ax.xaxis.set_major_locator(mdates.MonthLocator(bymonth=(1, 7)))
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
     ax.legend(fontsize=7, loc="center left")
-    for zax, b_ in zip(zooms, brackets):
+    for zax, b_, ypos in zip(zooms, brackets, (0.95, 0.50)):   # 0.50: clear of the v5 lines
         old, new = (VERSION_NAMES.get(b_[3][0], b_[3][0]),
                     VERSION_NAMES.get(b_[4][0], b_[4][0]))
-        zax.annotate(f"{old} -> {new}\non {b_[2]:%d %b %Y}", (0.03, 0.95),
+        zax.annotate(f"{old} -> {new}\non {b_[2]:%d %b %Y}", (0.03, ypos),
                      xycoords="axes fraction", va="top", fontsize=7)
         zax.xaxis.set_major_locator(mdates.DayLocator(bymonthday=(1, 8, 15, 22)))
         zax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))

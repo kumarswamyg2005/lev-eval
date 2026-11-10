@@ -1,0 +1,28 @@
+Vulnerability prioritization methods are routinely validated against CISA's
+Known Exploited Vulnerabilities (KEV) catalogue, as if KEV listed every
+exploited CVE (publicly catalogued vulnerability). We measure what that assumption costs, using NIST's proposed
+Likely Exploited Vulnerabilities (LEV) metric as a case study. LEV compounds a
+CVE's history of Exploit Prediction Scoring System (EPSS) scores into a
+probability that the CVE has already been exploited; we found no published
+empirical evaluation of it. We reimplement LEV, reproduce the white paper's
+averages for CVEs published since 2021 to within 7\%, and score it on 105,250
+CVEs. Against KEV,
+LEV over-predicts by a factor of 17.3 while still ranking CVEs well. Part of
+the gap lies in LEV's inputs: LEV multiplies scores across EPSS model releases
+that rescale the corpus overnight, which accounts for 27--62\% of its mass,
+and EPSS scores for CVEs that no list records rise rather than decay, so LEV
+does not saturate as its design assumes. To separate LEV's error from KEV's
+blind spots, we audit public exploitation lists for dependence, find that two
+of them contain KEV in full, and apply capture-recapture estimation with
+explicit rules for when an estimate may be reported. Among 54,612 recent
+CVEs, KEV records at most 32\% of the exploited CVEs that three
+evidence-citing lists observe. For CVEs
+with LEV of at least 0.9, the one stratum in which the estimate is identified,
+LEV is about twice as confident as the estimated exploitation rate, rather
+than the 4.5 times that KEV alone suggests, and stays within about 2.2 times
+when LEV is blinded to KEV listings. A monotone correction restores
+calibration a year ahead against the broader ground truth but must be refitted
+as CVEs age, and neither LEV nor a learned aggregation of EPSS history
+anticipates most new listings. We release code, pinned data where licences allow, and per-CVE
+truth bounds so that other prioritization methods can be re-scored against more than
+KEV.

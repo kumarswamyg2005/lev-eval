@@ -8,7 +8,8 @@
   "population": {
     "from": "2024-10-24",
     "to": "2026-01-30",
-    "N": 54612
+    "N": 54612,
+    "scored_by_2024_10_22": 2365
   },
   "lists": {
     "CISA": 1656,
@@ -39,8 +40,8 @@
     "reason": "CISAxSENSOR+CISAxVULNCHK: N_hat 881 below Chao lower bound 919 -- heterogeneity violates the model; CISAxSENSOR+CISAxVULNCHK: N_hat 881 below stratified Chao bound 997 -- pooling across LEV strata biases it low; CISAxVULNCHK: N_hat 866 below Chao lower bound 919 -- heterogeneity violates the model; CISAxVULNCHK: N_hat 866 below stratified Chao bound 997 -- pooling across LEV strata biases it low",
     "N_hat": 881.2054794520566,
     "ci": [
-      793.0806312885468,
-      982.5302749867798
+      799.548367697598,
+      980.2601973684189
     ],
     "N_avg": 873.8847181103041,
     "model": [
@@ -457,14 +458,14 @@
         "truth": "log-linear (AIC-selected)",
         "assumption": "+ no three-way interaction",
         "exploited": 306.317647058824,
-        "exploited_lo": 267.71994442729226,
-        "exploited_hi": 346.6075757575767,
+        "exploited_lo": 270.2448297213625,
+        "exploited_hi": 346.01207489039024,
         "over": 2.044813591976882,
-        "over_lo": 1.8071229020289776,
-        "over_hi": 2.3396183258149787,
+        "over_lo": 1.8102330341121184,
+        "over_hi": 2.317759376984475,
         "over_raw_lev": 2.036202030537446,
-        "over_raw_lev_lo": 1.7995123550527181,
-        "over_raw_lev_hi": 2.3297652188928426
+        "over_raw_lev_lo": 1.8026093890746842,
+        "over_raw_lev_hi": 2.3079983271973235
       }
     ]
   },
@@ -511,8 +512,8 @@
       "reason": "CISAxVULNCHK: N_hat 300 below Chao lower bound 475 -- heterogeneity violates the model; SENSORxVULNCHK: N_hat 260 below Chao lower bound 475 -- heterogeneity violates the model; CISAxSENSOR: N_hat 273 below Chao lower bound 475 -- heterogeneity violates the model",
       "N_hat": 299.8333333333323,
       "ci": [
-        249.00000000023377,
-        376.03749999999366
+        245.54067460316986,
+        379.29516806718084
       ],
       "N_avg": 280.6436061567905,
       "model": [
@@ -646,8 +647,8 @@
       "reason": "CISAxSENSOR: N_hat 213 below Chao lower bound 229 -- heterogeneity violates the model",
       "N_hat": 212.81927710843343,
       "ci": [
-        181.99931506849322,
-        243.7305555555557
+        184.79249999999982,
+        245.26557388707178
       ],
       "N_avg": 229.56126009448815,
       "model": [
@@ -738,8 +739,8 @@
       "reason": "",
       "N_hat": 306.317647058824,
       "ci": [
-        269.1630434782612,
-        345.933263736264
+        270.2448297213625,
+        346.01207489039024
       ],
       "N_avg": 307.16307149788656,
       "model": [
@@ -826,7 +827,7 @@
       "n": 54612,
       "union": 3.284666182502958,
       "chao": 2.3971452863214973,
-      "loglinear": "0.99x [0.62, 1.38]",
+      "loglinear": "0.99x [0.58, 1.37]",
       "reason": ""
     },
     {
@@ -853,7 +854,7 @@
       "n": 636,
       "union": 2.796261107894021,
       "chao": 2.5375761595866444,
-      "loglinear": "2.07x [1.76, 2.45]",
+      "loglinear": "2.07x [1.75, 2.44]",
       "reason": ""
     },
     {
@@ -898,7 +899,7 @@
       "n": 54612,
       "union": 2.0484242057184754,
       "chao": 1.0857563239302896,
-      "loglinear": "0.35x [0.09, 0.85]",
+      "loglinear": "0.35x [0.08, 0.81]",
       "reason": ""
     },
     {
@@ -952,7 +953,7 @@
       "n": 1964,
       "union": 2.900419900751714,
       "chao": 1.0402551197315255,
-      "loglinear": "1.22x [0.69, 1.70]",
+      "loglinear": "1.22x [0.67, 1.72]",
       "reason": ""
     },
     {
@@ -961,7 +962,7 @@
       "n": 636,
       "union": 2.245026839312762,
       "chao": 1.7709295801469203,
-      "loglinear": "1.92x [1.66, 2.23]",
+      "loglinear": "1.92x [1.64, 2.25]",
       "reason": ""
     },
     {
@@ -970,7 +971,7 @@
       "n": 54612,
       "union": 3.211423197301349,
       "chao": 2.6928937614680346,
-      "loglinear": "2.64x [2.34, 2.93]",
+      "loglinear": "2.64x [2.38, 2.94]",
       "reason": ""
     },
     {
@@ -997,7 +998,7 @@
       "n": 636,
       "union": 2.390696519726186,
       "chao": 2.18899120263524,
-      "loglinear": "2.12x [1.85, 2.43]",
+      "loglinear": "2.12x [1.86, 2.45]",
       "reason": ""
     }
   ],
@@ -1021,8 +1022,8 @@
         "reason": "SENSORxVULNCHK: N_hat 745 below Chao lower bound 919 -- heterogeneity violates the model; SENSORxVULNCHK: N_hat 745 below stratified Chao bound 997 -- pooling across LEV strata biases it low; CISAxSENSOR+SENSORxVULNCHK: N_hat 745 below Chao lower bound 919 -- heterogeneity violates the model; CISAxSENSOR+SENSORxVULNCHK: N_hat 745 below stratified Chao bound 997 -- pooling across LEV strata biases it low",
         "N_hat": 744.7792207792191,
         "ci": [
-          689.6348914936683,
-          799.4253487634759
+          690.7910404879781,
+          796.4291061885324
         ],
         "N_avg": 744.7889262926535,
         "model": [
@@ -1118,8 +1119,8 @@
         "reason": "SENSORxVULNCHK: N_hat 260 below Chao lower bound 475 -- heterogeneity violates the model",
         "N_hat": 260.0,
         "ci": [
-          228.0,
-          293.0
+          228.875,
+          295.0
         ],
         "N_avg": 260.0,
         "model": [
@@ -1185,8 +1186,8 @@
         "reason": "SENSORxVULNCHK: N_hat 203 below Chao lower bound 229 -- heterogeneity violates the model",
         "N_hat": 202.81818181818156,
         "ci": [
-          174.40020161290315,
-          230.3146875
+          174.6355757196498,
+          233.17193158953725
         ],
         "N_avg": 202.81818181818156,
         "model": [
@@ -1239,8 +1240,8 @@
         "reason": "SENSORxVULNCHK: N_hat 279 below Chao lower bound 293 -- heterogeneity violates the model; CISAxSENSOR+SENSORxVULNCHK: N_hat 279 below Chao lower bound 293 -- heterogeneity violates the model",
         "N_hat": 279.04411764705856,
         "ci": [
-          246.08604907637167,
-          315.4739308929181
+          248.8925544345645,
+          315.6330940988834
         ],
         "N_avg": 279.0179825044057,
         "model": [
@@ -1359,6 +1360,293 @@
         "SENSOR_and_VULNCHK": 614
       },
       "note": "after removing Shadowserver-hosted VulnCheck reports; the before-removal overlap is not exposed by data/download_vulncheck.load()"
+    },
+    "vulncheck_only_not_strict": {
+      "single_list_captures": 430,
+      "vulncheck_only": 398,
+      "not_strict": 151,
+      "share": 0.3793969849246231
+    },
+    "prelisting_strata": {
+      "note": "(i) frozen: listed CVEs' LEV from snapshots strictly before listing, unlisted CVEs at d_n -- asymmetric, listed CVEs get fewer windows; (ii) fixed age: every CVE's LEV at age A from snapshots up to d0+A, CVEs listed by then dropped -- symmetric",
+      "frozen at listing (CISA)": {
+        "listed_cves_recomputed": 236,
+        "listed_without_prior_history": 133,
+        "strata": {
+          "LEV [0.0, 0.1)": {
+            "n": 52197,
+            "mean_lev": 0.011735427259402494,
+            "kev": 214,
+            "union": 445,
+            "chao": 526.3281519861831,
+            "over_kev": 2.862402320836598,
+            "over_union": 1.376526059907937,
+            "over_chao": 1.1638254468195584,
+            "identified": false,
+            "reason": "CISAxSENSOR+CISAxVULNCHK: N_hat 480 below Chao lower bound 501 -- heterogeneity violates the model"
+          },
+          "LEV [0.1, 0.9)": {
+            "n": 1912,
+            "mean_lev": 0.31831259816786733,
+            "kev": 17,
+            "union": 145,
+            "chao": 323.5652173913044,
+            "over_kev": 35.80080515864484,
+            "over_union": 4.19733577722043,
+            "over_chao": 1.880961410511977,
+            "identified": false,
+            "reason": "CISAxSENSOR+SENSORxVULNCHK: N_hat 145 below Chao lower bound 247 -- heterogeneity violates the model"
+          },
+          "LEV [0.9, 1.0)": {
+            "n": 503,
+            "mean_lev": 0.9828293859710224,
+            "kev": 5,
+            "union": 144,
+            "chao": 228.58536585365852,
+            "over_kev": 98.87263622868485,
+            "over_union": 3.4330776468293354,
+            "over_chao": 2.162707045121681,
+            "identified": false,
+            "reason": "independence: N_hat 176 below Chao lower bound 194 -- heterogeneity violates the model; CISAxSENSOR: N_hat 175 below Chao lower bound 194 -- heterogeneity violates the model; CISAxVULNCHK: N_hat 177 below Chao lower bound 194 -- heterogeneity violates the model; SENSORxVULNCHK: N_hat 179 below Chao lower bound 194 -- heterogeneity violates the model"
+          }
+        }
+      },
+      "frozen at listing (any primary list)": {
+        "listed_cves_recomputed": 734,
+        "listed_without_prior_history": 380,
+        "strata": {
+          "LEV [0.0, 0.1)": {
+            "n": 52398,
+            "mean_lev": 0.01161751497625322,
+            "kev": 229,
+            "union": 646,
+            "chao": 822.7914951989026,
+            "over_kev": 2.6582294747847866,
+            "over_union": 0.942313544467053,
+            "over_chao": 0.7398405954336706,
+            "identified": false,
+            "reason": "CISAxVULNCHK: N_hat 706 below Chao lower bound 779 -- heterogeneity violates the model; CISAxSENSOR+CISAxVULNCHK: N_hat 712 below Chao lower bound 779 -- heterogeneity violates the model"
+          },
+          "LEV [0.1, 0.9)": {
+            "n": 1829,
+            "mean_lev": 0.31070830484434264,
+            "kev": 5,
+            "union": 62,
+            "chao": 154.59259259259258,
+            "over_kev": 113.65709791206055,
+            "over_union": 9.165894992908107,
+            "over_chao": 3.676020176839524,
+            "identified": false,
+            "reason": "CISAxVULNCHK: N_hat 101 below Chao lower bound 102 -- heterogeneity violates the model; CISAxSENSOR+SENSORxVULNCHK: N_hat 62 below Chao lower bound 102 -- heterogeneity violates the model; SENSORxVULNCHK: N_hat 62 below Chao lower bound 102 -- heterogeneity violates the model"
+          },
+          "LEV [0.9, 1.0)": {
+            "n": 385,
+            "mean_lev": 0.9819301559402737,
+            "kev": 2,
+            "union": 26,
+            "chao": 55.4,
+            "over_kev": 189.02155501850268,
+            "over_union": 14.5401196168079,
+            "over_chao": 6.823882852653527,
+            "identified": true,
+            "reason": "",
+            "N_hat": 45.59999999999994,
+            "ci": [
+              23.999999999999982,
+              114.00000000000206
+            ],
+            "over_loglinear": 8.290419079758902,
+            "over_loglinear_ci": [
+              3.316167631903496,
+              15.751796251541903
+            ]
+          }
+        }
+      },
+      "LEV at age 90 days, drop listed by then (CISA)": {
+        "dropped": 199,
+        "strata": {
+          "LEV [0.0, 0.1)": {
+            "n": 54089,
+            "mean_lev": 0.0020802941987440875,
+            "kev": 30,
+            "union": 424,
+            "chao": 1010.6714285714286,
+            "over_kev": 3.7507010971956314,
+            "over_union": 0.26537979461289846,
+            "over_chao": 0.11133295127865246,
+            "identified": false,
+            "reason": "CISAxVULNCHK: N_hat 552 below Chao lower bound 849 -- heterogeneity violates the model; independence: N_hat 525 below Chao lower bound 849 -- heterogeneity violates the model; SENSORxVULNCHK: N_hat 485 below Chao lower bound 849 -- heterogeneity violates the model; CISAxSENSOR+CISAxVULNCHK: N_hat 550 below Chao lower bound 849 -- heterogeneity violates the model"
+          },
+          "LEV [0.1, 0.9)": {
+            "n": 274,
+            "mean_lev": 0.33277556008350356,
+            "kev": 3,
+            "union": 76,
+            "chao": 139.70588235294116,
+            "over_kev": 30.393501154293325,
+            "over_union": 1.1997434666168418,
+            "over_chao": 0.6526604458395621,
+            "identified": false,
+            "reason": "CISAxVULNCHK: N_hat 101 below Chao lower bound 107 -- heterogeneity violates the model; CISAxVULNCHK+SENSORxVULNCHK: N_hat 76 below Chao lower bound 107 -- heterogeneity violates the model; SENSORxVULNCHK: N_hat 76 below Chao lower bound 107 -- heterogeneity violates the model; CISAxSENSOR+SENSORxVULNCHK: N_hat 76 below Chao lower bound 107 -- heterogeneity violates the model"
+          },
+          "LEV [0.9, 1.0)": {
+            "n": 50,
+            "mean_lev": 0.9614037350441591,
+            "kev": 4,
+            "union": 35,
+            "chao": 46.30769230769231,
+            "over_kev": 12.017546688051988,
+            "over_union": 1.3734339072059416,
+            "over_chao": 1.0380605112603047,
+            "identified": false,
+            "reason": "CISAxVULNCHK: N_hat 35 below Chao lower bound 39 -- heterogeneity violates the model; independence: N_hat 35 below Chao lower bound 39 -- heterogeneity violates the model; CISAxVULNCHK+SENSORxVULNCHK: N_hat 35 below Chao lower bound 39 -- heterogeneity violates the model; SENSORxVULNCHK: N_hat 35 below Chao lower bound 39 -- heterogeneity violates the model"
+          }
+        }
+      },
+      "LEV at age 90 days, drop listed by then (any primary list)": {
+        "dropped": 522,
+        "strata": {
+          "LEV [0.0, 0.1)": {
+            "n": 53848,
+            "mean_lev": 0.0020332646062972354,
+            "kev": 18,
+            "union": 183,
+            "chao": 499.01282051282044,
+            "over_kev": 6.082624028882974,
+            "over_union": 0.5982908880868499,
+            "over_chao": 0.21940765451151495,
+            "identified": false,
+            "reason": "CISAxSENSOR: N_hat 284 below Chao lower bound 375 -- heterogeneity violates the model; SENSORxVULNCHK: N_hat 230 below Chao lower bound 375 -- heterogeneity violates the model"
+          },
+          "LEV [0.1, 0.9)": {
+            "n": 225,
+            "mean_lev": 0.32854861536434793,
+            "kev": 0,
+            "union": 27,
+            "chao": 131.16666666666666,
+            "over_kev": Infinity,
+            "over_union": 2.7379051280362328,
+            "over_chao": 0.5635840288969121,
+            "identified": false,
+            "reason": "no model with residual df"
+          },
+          "LEV [0.9, 1.0)": {
+            "n": 17,
+            "mean_lev": 0.949983850492481,
+            "kev": 1,
+            "union": 2,
+            "chao": 2.0,
+            "over_kev": 16.149725458372178,
+            "over_union": 8.074862729186089,
+            "over_chao": 8.074862729186089,
+            "identified": true,
+            "reason": "",
+            "N_hat": 2.0,
+            "ci": [
+              1.0,
+              5.0
+            ],
+            "over_loglinear": 8.074862729186089,
+            "over_loglinear_ci": [
+              3.2299450916744354,
+              16.149725458372178
+            ]
+          }
+        }
+      },
+      "LEV at age 180 days, drop listed by then (CISA)": {
+        "dropped": 216,
+        "strata": {
+          "LEV [0.0, 0.1)": {
+            "n": 53663,
+            "mean_lev": 0.004224786019274012,
+            "kev": 13,
+            "union": 330,
+            "chao": 1009.0325203252032,
+            "over_kev": 17.43959170402318,
+            "over_union": 0.6870142186433373,
+            "over_chao": 0.22468521835077523,
+            "identified": false,
+            "reason": "CISAxSENSOR: N_hat 398 below Chao lower bound 791 -- heterogeneity violates the model"
+          },
+          "LEV [0.1, 0.9)": {
+            "n": 561,
+            "mean_lev": 0.35895559001125854,
+            "kev": 4,
+            "union": 119,
+            "chao": 239.125,
+            "over_kev": 50.34352149907901,
+            "over_union": 1.692219210053076,
+            "over_chao": 0.8421289534608093,
+            "identified": false,
+            "reason": "independence: N_hat 166 below Chao lower bound 186 -- heterogeneity violates the model; CISAxSENSOR: N_hat 169 below Chao lower bound 186 -- heterogeneity violates the model; CISAxVULNCHK: N_hat 169 below Chao lower bound 186 -- heterogeneity violates the model; SENSORxVULNCHK: N_hat 157 below Chao lower bound 186 -- heterogeneity violates the model"
+          },
+          "LEV [0.9, 1.0)": {
+            "n": 172,
+            "mean_lev": 0.9756144052825169,
+            "kev": 3,
+            "union": 69,
+            "chao": 101.06060606060606,
+            "over_kev": 55.9352259028643,
+            "over_union": 2.4319663436027956,
+            "over_chao": 1.6604459863219088,
+            "identified": false,
+            "reason": "CISAxVULNCHK: N_hat 75 below Chao lower bound 84 -- heterogeneity violates the model; CISAxVULNCHK+SENSORxVULNCHK: N_hat 69 below Chao lower bound 84 -- heterogeneity violates the model; SENSORxVULNCHK: N_hat 69 below Chao lower bound 84 -- heterogeneity violates the model; independence: N_hat 75 below Chao lower bound 84 -- heterogeneity violates the model"
+          }
+        }
+      },
+      "LEV at age 180 days, drop listed by then (any primary list)": {
+        "dropped": 592,
+        "strata": {
+          "LEV [0.0, 0.1)": {
+            "n": 53430,
+            "mean_lev": 0.004175228930217514,
+            "kev": 10,
+            "union": 97,
+            "chao": 277.9230769230769,
+            "over_kev": 22.308248174152173,
+            "over_union": 2.2998193993971316,
+            "over_chao": 0.8026770724162144,
+            "identified": false,
+            "reason": "CISAxSENSOR: N_hat 133 below Chao lower bound 188 -- heterogeneity violates the model; independence: N_hat 135 below Chao lower bound 188 -- heterogeneity violates the model; CISAxVULNCHK: N_hat 167 below Chao lower bound 188 -- heterogeneity violates the model"
+          },
+          "LEV [0.1, 0.9)": {
+            "n": 475,
+            "mean_lev": 0.3535617043566653,
+            "kev": 1,
+            "union": 33,
+            "chao": 193.16666666666666,
+            "over_kev": 167.94180956941602,
+            "over_union": 5.089145744527758,
+            "over_chao": 0.8694140271065541,
+            "identified": true,
+            "reason": "",
+            "N_hat": 124.99999999999969,
+            "ci": [
+              48.150000000000134,
+              310.49999999999795
+            ],
+            "over_loglinear": 1.3435344765553316,
+            "over_loglinear_ci": [
+              0.5408753931382194,
+              3.4878880492090456
+            ]
+          },
+          "LEV [0.9, 1.0)": {
+            "n": 115,
+            "mean_lev": 0.9679701326350488,
+            "kev": 0,
+            "union": 12,
+            "chao": 52.33333333333333,
+            "over_kev": Infinity,
+            "over_union": 9.276380437752552,
+            "over_chao": 2.1270681258540884,
+            "identified": false,
+            "reason": "no model with residual df"
+          }
+        }
+      }
     }
   },
   "sensitivity": {
