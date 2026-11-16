@@ -20,3 +20,5 @@ paper/*.out
 paper/weis.pdf
 paper/acm.pdf
 paper/SUBMISSION.md
+# upload package for the journal (built from paper/submission.tex)
+paper/uploading.zip

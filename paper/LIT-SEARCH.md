@@ -77,3 +77,15 @@ Section 7).
 - Source check against CSWP 41 itself (not done before): the white paper
   DOES state Table 5's date (2025-01-16) and each row's CVE count. The paper
   and `validate.py` now use that date; see Section 5.1.
+
+## Re-run 2026-11-15 (before handing the paper to the supervisor)
+
+- arXiv API, the six queries of 11 November, papers since 2026-10-10: no new
+  hits (newest EPSS/KEV paper is still CAPE, 9 October).
+- OpenAlex, published since 2026-10-20: only Lu & Stiawan (already cited).
+- Web search: no LEV evaluation published. Found Almarashi, *Entropy-Resolved
+  Exploitation Pressure* (IET Information Security 2026(1), online 27 October
+  2026, doi:10.1049/ise2/5854622): EPSS-based pressure measure validated by
+  top-5% KEV capture; does not cite or evaluate LEV, no catalogue-coverage
+  estimate. Read from its abstract only (publisher page blocked). Now cited
+  under "KEV as ground truth". Claims (a) and (b) still stand.

@@ -91,7 +91,7 @@ a CVE is first scored for any history-based metric to anticipate.
 \end{enumerate}
 
 The code, the hashes of all data snapshots, and every snapshot whose licence
-allows it will be released, and one command regenerates
+allows it are released, and one command regenerates
 every number in this paper from the pinned inputs; results that use
 VulnCheck's data, which cannot be redistributed, can be re-run but not
 reproduced exactly (see the data and code availability statement). We also release per-CVE \emph{truth
@@ -1061,7 +1061,7 @@ review: on 28 October 2026 we queried the arXiv API for every paper since May
 ``exploited in the wild'', or capture-recapture with vulnerabilities, screened
 the abstracts, read every paper that cites the white paper, checked the WEIS
 2026 programme, and searched the web. We repeated the arXiv and bibliographic
-searches on 8 and 11 November 2026. Peer-reviewed work not indexed in these sources may
+searches on 8, 11 and 15 November 2026. Peer-reviewed work not indexed in these sources may
 be missed.
 
 \paragraph{Conclusion validity.} LEV's windows are 30 days, whereas our
@@ -1118,8 +1118,9 @@ empirical evaluation of LEV.
 \paragraph{KEV as ground truth.} Recent frameworks combine CVSS, EPSS and
 KEV~\cite{shimizu2026chaining,podder2026cape}, build composite risk indicators
 evaluated on KEV~\cite{sherif2026kri}, train a ranking model with KEV entries as
-weak supervision~\cite{motamedi2026threatlens}, or order dependency upgrades by
-KEV membership~\cite{omondi2026kevgraph}. Prospective evaluations increasingly
+weak supervision~\cite{motamedi2026threatlens}, order dependency upgrades by
+KEV membership~\cite{omondi2026kevgraph}, or validate an EPSS-based measure of
+exploitation pressure by the share of KEV entries it captures~\cite{almarashi2026entropy}. Prospective evaluations increasingly
 guard against temporal leakage in the evidence~\cite{alpay2026graphs}, but the
 label itself is still taken as complete. The GitHub Popularity Metric is
 evaluated against CISA KEV and against a pooled set that also includes

@@ -5,7 +5,8 @@ CSWP 41, Mell & Spring, May 2025): are LEV probabilities calibrated against
 observed exploitation, and how much of the apparent error belongs to the
 exploitation catalogue (CISA KEV) rather than to LEV? The paper is
 [paper/main.tex](paper/main.tex) (LaTeX; `bash paper/build-tex.sh`
-builds `main.pdf`, the anonymous WEIS submission `weis.pdf` and the ACM-format `acm.pdf`).
+builds `main.pdf`, the anonymous `weis.pdf`, the ACM-format `acm.pdf` and
+`submission.pdf`, the shorter journal version built from `paper/submission.tex`).
 `paper/draft.md` is the earlier Markdown draft, superseded on 2026-11-08.
 
 - [docs/RESULTS.md](docs/RESULTS.md): per-task results and narrative (pre-review numbers)
